@@ -113,6 +113,8 @@ function setup() {
   OtherSprites.Cloud2a.resize(500,0);
   OtherSprites.Cloud3a.resize(500,0);
 
+  CanvasWidth = Math.min(CanvasWidth, displayWidth);
+  CanvasHeight = Math.min(CanvasHeight, displayHeight);
   Canvas = createCanvas(CanvasWidth, CanvasHeight);
   Canvas.parent("main");
   Canvas.id("canvas");
