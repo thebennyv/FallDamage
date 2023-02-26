@@ -30,6 +30,7 @@ p {
 
 canvas {
     border: 2pt solid white;
+    border:none;
 }
 
 input {
