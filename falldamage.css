@@ -1,0 +1,57 @@
+
+/* Site-wide stylesheet */
+
+
+html {
+    margin: 1em;
+    text-align: center;
+}
+
+h1,h2,h3,h4,h5,h6 {
+    font-family: "Futura","Avenir", sans-serif;
+    color: rgb(173, 216, 230);
+    padding-top: 1em;
+}
+
+h1 {
+    color: black;
+}
+
+p {
+    font-size: 14pt;
+}
+
+/*body {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}*/
+
+canvas {
+    border: 2pt solid white;
+}
+
+input {
+    font-size:15pt;
+}
+
+.bigbutton {
+    font-size:30pt;
+    padding:10pt;
+    border: 2pt solid #4CAF50; /* Green */
+    border: 2pt solid #4c86af; /* Blue */
+    border-radius:10pt;
+    background-color: #4CAF50; /* Green */
+    background-color: #4c86af; /* Green */
+    color: white;
+    background-image: linear-gradient(#b6deb7, #4CAF50);
+    background-image: linear-gradient(#96b5cc, #4c86af);
+
+    transition-duration: 0.4s;
+}
+
+.bigbutton:hover {
+    background-color: white;
+    background-image: none;
+    color: #4c86af; /* Green */
+}
