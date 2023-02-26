@@ -89,12 +89,12 @@ function preload() {
   Fonts.Hatolie = loadFont('assets/fonts/Hatolie.ttf');
   Fonts.CalligraphyWet = loadFont('assets/fonts/CalligraphyWet.ttf');
 
-  OtherSprites.Cloud1 = loadImage('assets/sprites/cloud1.png');
-  OtherSprites.Cloud2 = loadImage('assets/sprites/cloud2.png');
-  OtherSprites.Cloud3 = loadImage('assets/sprites/cloud3.png');
-  OtherSprites.Cloud1a = loadImage('assets/sprites/cloud1.png');
-  OtherSprites.Cloud2a = loadImage('assets/sprites/cloud2.png');
-  OtherSprites.Cloud3a = loadImage('assets/sprites/cloud3.png');
+  OtherSprites.Cloud1 = loadImage('assets/sprites/cloud1_small.png');
+  OtherSprites.Cloud2 = loadImage('assets/sprites/cloud2_small.png');
+  OtherSprites.Cloud3 = loadImage('assets/sprites/cloud3_small.png');
+  OtherSprites.Cloud1a = loadImage('assets/sprites/cloud1_small.png');
+  OtherSprites.Cloud2a = loadImage('assets/sprites/cloud2_small.png');
+  OtherSprites.Cloud3a = loadImage('assets/sprites/cloud3_small.png');
 
   // Sounds
   IntroSong = loadSound('assets/music/2021-08-30_-_Boss_Time_-_www.FesliyanStudios.com.mp3');
