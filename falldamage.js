@@ -120,6 +120,11 @@ function setup() {
   Canvas.id("canvas");
   Canvas.style("z-index:0");
 
+  document.getElementById( "canvas" ).onwheel = function(event){ event.preventDefault(); };
+  document.getElementById( "canvas" ).onmousewheel = function(event){ event.preventDefault(); };
+  document.getElementById( "canvas" ).addEventListener('touchstart', function(e) { document.documentElement.style.overflow = 'hidden'; });
+  document.getElementById( "canvas" ).addEventListener('touchend', function(e) { document.documentElement.style.overflow = 'auto'; });
+
   let UI = createDiv();
   UI.parent("main");
   UI.id("UI");
@@ -128,11 +133,11 @@ function setup() {
   
   let StartButton = createButton("Start");
   StartButton.parent("UI");
-  StartButton.mousePressed(mousePressed_IntroScreenStartButton);
+  StartButton.mouseClicked(mouseClicked_IntroScreenStartButton);
   StartButton.addClass("bigbutton");
 }
 
-function mousePressed_IntroScreenStartButton() {
+function mouseClicked_IntroScreenStartButton() {
   GameScreen = GameScreens.CharacterSelect;
   //select("UI").remove(); not sure if this would remove its children
   removeElements(); // Removes all p5 elements (so, the UI)
@@ -157,11 +162,11 @@ function mousePressed_IntroScreenStartButton() {
   let PlayGameButton = createButton("Play Game");
   PlayGameButton.parent("afternameinput");
   PlayGameButton.addClass("bigbutton");
-  PlayGameButton.mousePressed(mousePressed_CharacterSelectScreen_PlayGameButton);
+  PlayGameButton.mouseClicked(mouseClicked_CharacterSelectScreen_PlayGameButton);
 
 }
 
-function mousePressed_CharacterSelectScreen_PlayGameButton() {
+function mouseClicked_CharacterSelectScreen_PlayGameButton() {
 
 }
 
