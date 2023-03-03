@@ -40,16 +40,10 @@ input {
 .bigbutton {
     font-size:30pt;
     padding:10pt;
-    border: 2pt solid #4CAF50; /* Green */
-    border: 2pt solid #4c86af; /* Blue */
     border: 2pt solid #af934c; /* Orange */
     border-radius:10pt;
-    background-color: #4CAF50; /* Green */
-    background-color: #4c86af; /* Blue */
     background-color: #af934c; /* Orange */
     color: white;
-    background-image: linear-gradient(#b6deb7, #4CAF50);
-    background-image: linear-gradient(#96b5cc, #4c86af);
     background-image: linear-gradient(#ffeec4, #edbb3e);
 
     transition-duration: 0.4s;
@@ -58,7 +52,5 @@ input {
 .bigbutton:hover {
     background-color: white;
     background-image: none;
-    color: #4CAF50; /* Green */
-    color: #4c86af; /* Blue */
     color: #edbb3e; /* Orange */
 }

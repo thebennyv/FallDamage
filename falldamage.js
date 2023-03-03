@@ -2,6 +2,7 @@
 const GameScreens = {
 	Intro:           Symbol("Intro"),
 	CharacterSelect: Symbol("CharacterSelect"),
+	WaitingForPlayers: Symbol("WaitingForPlayers"),
 	Play:            Symbol("Play"),
   FinishAnimation: Symbol("FinishAnimation")
 }
@@ -11,31 +12,31 @@ const Characters = [
     name: "Squirrel",
     spritePath:"assets/sprites/squirrel.png",
     sprite:null,
-    stats: {mass: 5}
+    stats: {mass: 5, speed: 6, armor: 3}
   },
   {
     name: "Turtle",
     spritePath:"assets/sprites/turtle.png",
     sprite:null,
-    stats: {mass: 4}
+    stats: {mass: 4, speed: 7, armor: 10}
   },
   {
     name: "Bird",
     spritePath:"assets/sprites/bird.png",
     sprite:null,
-    stats: {mass: 2}
+    stats: {mass: 2, speed: 10, armor: 1}
   },
   {
     name: "Hedgehog",
-    spritePath:"assets/sprites/hedgehog.png",
+    spritePath:"assets/sprites/FD_L_Hedgehog_64.png",
     sprite:null,
-    stats: {mass: 3}
+    stats: {mass: 3, speed: 6, armor: 8, spike:4}
   },
   {
     name: "Chicken",
     spritePath:"assets/sprites/chicken.png",
     sprite:null,
-    stats: {mass: 7}
+    stats: {mass: 7, speed: 3, armor: 7}
   }
 ];
 
@@ -54,6 +55,7 @@ let SkyColor;
 
 let IntroSong;
 let AudioAllowed = false;
+let IntroSongPlayed = false;
 
 let Canvas;
 let CanvasWidth = 512;
@@ -66,10 +68,10 @@ const Fonts = {
 
 let Player = {
   id: uuidv4(),
-  name: "What's your name?",
+  name: "",
   character: 0, // 0, 1, 2, ... index from Characters array
   positionXPercent: 50,
-  positionYPercent: 0
+  positionYPercent: 5
 };
 
 function uuidv4() {
@@ -120,6 +122,7 @@ function setup() {
   Canvas.id("canvas");
   Canvas.style("z-index:0");
 
+  // Prevent scrolling and dragging of the page when a mouse wheel or touch event occurs inside the canvas
   document.getElementById( "canvas" ).onwheel = function(event){ event.preventDefault(); };
   document.getElementById( "canvas" ).onmousewheel = function(event){ event.preventDefault(); };
   document.getElementById( "canvas" ).addEventListener('touchstart', function(e) { document.documentElement.style.overflow = 'hidden'; });
@@ -151,9 +154,10 @@ function mouseClicked_IntroScreenStartButton() {
   
   let NameInput = createInput('');
   NameInput.parent("UI");
-  NameInput.value(Player.name);
+//  NameInput.value(Player.name);
   //NameInput.size(100);
   NameInput.input(input_CharacterSelectScreen_NameInput);
+  NameInput.attribute("placeholder", "What's your name?");
 
   let P = createP("");
   P.parent("UI");
@@ -164,21 +168,20 @@ function mouseClicked_IntroScreenStartButton() {
   PlayGameButton.addClass("bigbutton");
   PlayGameButton.mouseClicked(mouseClicked_CharacterSelectScreen_PlayGameButton);
 
+  userStartAudio();
+  AudioAllowed = true;
+
 }
 
 function mouseClicked_CharacterSelectScreen_PlayGameButton() {
-
+  GameScreen = GameScreens.WaitingForPlayers;
+  removeElements(); // Removes all p5 elements (so, the UI)
 }
 
 function input_CharacterSelectScreen_NameInput() {
   console.log('you are typing: ', this.value());
   Player.name = this.value();
 }
-
-// function mousePressed() {
-//   userStartAudio();
-//   AudioAllowed = true;
-// }
 
 function draw() {
 
@@ -190,6 +193,10 @@ function draw() {
 
     case GameScreens.CharacterSelect:
       drawCharacterSelectScreen();
+      break;
+
+    case GameScreens.WaitingForPlayers:
+      drawWaitingForPlayersScreen();
       break;
 
     case GameScreens.Play:
@@ -206,9 +213,8 @@ function draw() {
 
 }
 
-function drawIntroScreen() {
-  
-  background(SkyColor);
+function drawClouds() {
+
 
   image(OtherSprites.Cloud1, -10,-20);
   image(OtherSprites.Cloud2, 0,150);
@@ -216,25 +222,27 @@ function drawIntroScreen() {
   image(OtherSprites.Cloud1a, 200,200);
   image(OtherSprites.Cloud2a, -100,150);
   image(OtherSprites.Cloud3a, 200,300);
+}
+
+function drawIntroScreen() {
+  
+  background(SkyColor);
   //drawTitle('Intro'); // todo remove
 
-  drawLogo(70,30);
+  drawClouds();
 
-  if (!IntroSong.isPlaying() && AudioAllowed) {
-    IntroSong.play();
-  }
+  drawLogo(70,30);
 }
 
 function drawCharacterSelectScreen() {
 
+  // if (!IntroSongPlayed /*!IntroSong.isPlaying()*/ && AudioAllowed) {
+  //   IntroSong.play();
+  // }
+
   background(SkyColor);
 
-  image(OtherSprites.Cloud1, -10,-20);
-  image(OtherSprites.Cloud2, 0,150);
-  image(OtherSprites.Cloud3, 0,300);
-  image(OtherSprites.Cloud1a, 200,200);
-  image(OtherSprites.Cloud2a, -100,150);
-  image(OtherSprites.Cloud3a, 200,300);
+  drawClouds();
 
   drawTitle('Select Your Character'); // todo improve
 
@@ -249,8 +257,8 @@ function drawCharacterSelectScreen() {
 
   // Draw a rounded box around the selected character
   push();
-    stroke('yellow');
-    strokeWeight(2);
+    stroke("#ffeec4");
+    strokeWeight(3);
     noFill();
     rect(Player.character*70,70, 64,64, 5);
   pop();
@@ -259,13 +267,31 @@ function drawCharacterSelectScreen() {
   if (xIndex < Characters.length && yIndex == 1) {
     push();
       stroke('white');
-      strokeWeight(2);
+      strokeWeight(4);
       noFill();
       drawingContext.shadowBlur = 16;
-      drawingContext.shadowColor = color("blue");
+      drawingContext.shadowColor = color("#ffeec4");
       rect(left,top, 64,64, 5);
     pop();
   }
+
+  // Draw character stats
+  push();
+    textAlign(LEFT, TOP);
+    fill(0);
+    strokeWeight(0);
+    let tsize = 20;
+    textSize(tsize);
+    let i = 0;
+    for ( var stat in Characters[Player.character].stats ) {
+      text(stat + ": " + Characters[Player.character].stats[stat], 200, 150+i*tsize);
+      i++;
+    }
+    // text("mass: " + Characters[Player.character].stats.mass, 200, 150);
+    // text("speed: " + Characters[Player.character].stats.speed, 200, 150+30);
+    // text("armor: " + Characters[Player.character].stats.armor, 200, 150+60);
+  pop();
+
   text(xIndex, 10,10);
   text(yIndex, 30,10);
 
@@ -284,9 +310,46 @@ function mouseClicked() {
   }
 }
 
+function updatePlayer(acceleration) {
+  const LRMove = 0.3;
+  if (keyIsDown(LEFT_ARROW)) {
+    Player.positionXPercent -= LRMove;
+    if (Player.positionXPercent < 0) {
+      Player.positionXPercent = 0;
+    }
+  }
+  if (keyIsDown(RIGHT_ARROW)) {
+    Player.positionXPercent += LRMove;
+    if (Player.positionXPercent > 100) {
+      Player.positionXPercent = 100;
+    }
+  }
+
+  Player.positionYPercent += 1/Characters[Player.character].stats.mass * acceleration;
+}
+
+function drawWaitingForPlayersScreen() {
+  
+  background(SkyColor);
+
+  drawClouds();
+
+  drawTitle('Waiting for others...'); // todo remove
+
+  updatePlayer(0.2);
+
+  image(
+    Characters[Player.character].sprite,
+    CanvasWidth * Player.positionXPercent/100 - 32,
+    CanvasHeight * Player.positionYPercent/100
+    );
+}
+
 function drawPlayScreen() {
   
   background(SkyColor);
+
+  drawClouds();
 
   drawTitle('Play'); // todo remove
 }
@@ -294,6 +357,8 @@ function drawPlayScreen() {
 function drawFinishAnimationScreen() {
   
   background(SkyColor);
+
+  drawClouds();
 
   drawTitle('Finish Animation'); // todo remove
 }

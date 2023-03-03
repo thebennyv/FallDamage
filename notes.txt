@@ -4,3 +4,7 @@ https://supabase.com/docs/guides/realtime/quickstart
 
 https://www.fesliyanstudios.com/royalty-free-music/downloads-c/8-bit-music/6
 
+
+p5.js sketches on mobile:
+https://creative-coding.decontextualize.com/mobile/
+
