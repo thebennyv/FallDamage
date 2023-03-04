@@ -10,7 +10,7 @@ const GameScreens = {
 const Characters = [
   {
     name: "Squirrel",
-    spritePath:"assets/sprites/squirrel.png",
+    spritePath:"assets/sprites/FD_L_squirrel.png",
     sprite:null,
     stats: {mass: 5, speed: 6, armor: 3}
   },
@@ -342,7 +342,7 @@ function drawWaitingForPlayersScreen() {
   updatePlayer(0.2);
   push();
     imageMode(CENTER);
-    let playerXCoord = CanvasWidth * Player.positionXPercent/100 - 32;
+    let playerXCoord = CanvasWidth * Player.positionXPercent/100;
     if(Player.facing=="right"){
       scale(-1,1);
       playerXCoord = -playerXCoord;
