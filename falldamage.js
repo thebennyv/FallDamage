@@ -28,7 +28,7 @@ const Characters = [
   },
   {
     name: "Hedgehog",
-    spritePath:"assets/sprites/FD_L_Hedgehog_64.png",
+    spritePath:"assets/sprites/FD_L_Hedgehog.png",
     sprite:null,
     stats: {mass: 3, speed: 6, armor: 8, spike:4}
   },
@@ -71,7 +71,8 @@ let Player = {
   name: "",
   character: 0, // 0, 1, 2, ... index from Characters array
   positionXPercent: 50,
-  positionYPercent: 5
+  positionYPercent: 5,
+  facing:"left"
 };
 
 function uuidv4() {
@@ -313,12 +314,14 @@ function mouseClicked() {
 function updatePlayer(acceleration) {
   const LRMove = 0.3;
   if (keyIsDown(LEFT_ARROW)) {
+    Player.facing="left";
     Player.positionXPercent -= LRMove;
     if (Player.positionXPercent < 0) {
       Player.positionXPercent = 0;
     }
   }
   if (keyIsDown(RIGHT_ARROW)) {
+    Player.facing="right";
     Player.positionXPercent += LRMove;
     if (Player.positionXPercent > 100) {
       Player.positionXPercent = 100;
@@ -337,12 +340,19 @@ function drawWaitingForPlayersScreen() {
   drawTitle('Waiting for others...'); // todo remove
 
   updatePlayer(0.2);
-
-  image(
-    Characters[Player.character].sprite,
-    CanvasWidth * Player.positionXPercent/100 - 32,
-    CanvasHeight * Player.positionYPercent/100
-    );
+  push();
+    imageMode(CENTER);
+    let playerXCoord = CanvasWidth * Player.positionXPercent/100 - 32;
+    if(Player.facing=="right"){
+      scale(-1,1);
+      playerXCoord = -playerXCoord;
+    }
+    image(
+      Characters[Player.character].sprite,
+      playerXCoord,
+      CanvasHeight * Player.positionYPercent/100
+      );
+  pop();
 }
 
 function drawPlayScreen() {
