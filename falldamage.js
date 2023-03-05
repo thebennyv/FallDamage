@@ -311,8 +311,8 @@ function mouseClicked() {
   }
 }
 
-function updatePlayer(acceleration) {
-  const LRMove = 0.3;
+function updatePlayer() {
+  const LRMove = massToXAccel(Characters[Player.character].stats.mass);
   if (keyIsDown(LEFT_ARROW)) {
     Player.facing="left";
     Player.positionXPercent -= LRMove;
@@ -328,7 +328,8 @@ function updatePlayer(acceleration) {
     }
   }
 
-  Player.positionYPercent += 1/Characters[Player.character].stats.mass * acceleration;
+  //Player.positionYPercent += 1/Characters[Player.character].stats.mass * acceleration;
+  Player.positionYPercent += massToYAccel(Characters[Player.character].stats.mass);
 }
 
 function drawWaitingForPlayersScreen() {
@@ -339,10 +340,11 @@ function drawWaitingForPlayersScreen() {
 
   drawTitle('Waiting for others...'); // todo remove
 
-  updatePlayer(0.2);
+  updatePlayer();
+
   push();
     imageMode(CENTER);
-    let playerXCoord = CanvasWidth * Player.positionXPercent/100;
+    let playerXCoord = percentToX(Player.positionXPercent);
     if(Player.facing=="right"){
       scale(-1,1);
       playerXCoord = -playerXCoord;
@@ -350,7 +352,7 @@ function drawWaitingForPlayersScreen() {
     image(
       Characters[Player.character].sprite,
       playerXCoord,
-      CanvasHeight * Player.positionYPercent/100
+      percentToY(Player.positionYPercent)
       );
   pop();
 }
@@ -394,6 +396,23 @@ function drawLogo(x,y) {
     textFont(Fonts.CalligraphyWet);
     text("DAMAGE", x+110,y);
   pop();
+}
+
+function percentToX(percent) {
+  return CanvasWidth * percent/100;
+}
+
+function percentToY(percent) {
+  return CanvasHeight * percent/100;
+}
+
+function massToXAccel(mass) {
+  return 0.3 * 10/mass;
+}
+
+function massToYAccel(mass) {
+  return 0.05 * 10/mass;
+  // todo: determine maximum amount of screens to allow any player to advance within the play time, and scale by that
 }
 
 // Hatolie 83 pt - Fall
