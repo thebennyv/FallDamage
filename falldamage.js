@@ -76,7 +76,7 @@ let Player = {
   name: "",
   character: 0, // 0, 1, 2, ... index from Characters array
   positionXPercent: 50,
-  positionYPercent: 5,
+  positionYPercent: 15,
   facing:"left"
 };
 
@@ -200,7 +200,7 @@ function transitionToWaitingForPlayersScreen() {
   GameScreen = GameScreens.WaitingForPlayers;
   removeElements(); // Removes all p5 elements (so, the UI)
 
-  startTimer(30);
+  startTimer(5);
 }
 
 function transitionToPlayScreen() {
@@ -271,7 +271,7 @@ function updateCloudsX() {
   CloudOffsetX += 0.01;
 }
 function updateCloudsY() {
-  CloudOffsetY += -0.1;
+  CloudOffsetY += -0.10;
 }
 
 function drawIntroScreen() {
@@ -389,6 +389,8 @@ function updatePlayer() {
   }
 }
 
+let WaitingForPlayersJump_t = 0;
+
 function drawWaitingForPlayersScreen() {
   
   background(SkyColor);
@@ -397,9 +399,6 @@ function drawWaitingForPlayersScreen() {
   drawClouds();
 
   drawTitle('Waiting for others...');
-
-  updatePlayer();
-  drawPlayer();
 
   let countdownResult = drawCountdown();
   if (false === countdownResult) {
@@ -416,6 +415,23 @@ function drawWaitingForPlayersScreen() {
     pop();
 
   }
+
+  updatePlayer();
+
+  let PlayerYPercentOffset = 0;
+  let jumpProgress = 0;
+  if (0 === countdownResult) {
+    jumpProgress = 1 - (CountDownTimestamp - millis()) / 1000;
+    console.log('', WaitingForPlayersJump_t, 'frames -- ', jumpProgress, '% ', CountDownTimestamp, '-', millis(), ' = ', CountDownTimestamp - millis());
+    PlayerYPercentOffset = -10 * normal_parabola(jumpProgress);
+
+    //PlayerYPercentOffset = -10 * normal_parabola(WaitingForPlayersJump_t / 60);
+    //console.log('', WaitingForPlayersJump_t, 'frames -- ', PlayerYPercentOffset, '% ');
+    WaitingForPlayersJump_t++;
+  }
+
+  drawPlayer(PlayerYPercentOffset);
+
 }
 
 function drawPlayScreen() {
@@ -427,7 +443,7 @@ function drawPlayScreen() {
   drawClouds();
 
   updatePlayer();
-  drawPlayer();
+  drawPlayer(0);
 }
 
 function drawFinishAnimationScreen() {
@@ -439,9 +455,9 @@ function drawFinishAnimationScreen() {
   drawTitle('Finish Animation'); // todo remove
 }
 
-function drawPlayer() {
-
+function drawPlayer(percentOffsetY) {
   push();
+
     imageMode(CENTER);
     let playerXCoord = percentToX(Player.positionXPercent);
     if(Player.facing=="right"){
@@ -451,8 +467,9 @@ function drawPlayer() {
     image(
       Characters[Player.character].sprite,
       playerXCoord,
-      percentToY(Player.positionYPercent)
+      percentToY(Player.positionYPercent + percentOffsetY)
       );
+
   pop();
 }
 
@@ -508,27 +525,48 @@ function startTimer(seconds) {
 // then returns false when the countdown has completed.
 function drawCountdown() {
 
-  let countDown = round((CountDownTimestamp - millis())/1000);
+  let countDown = Math.floor((CountDownTimestamp - millis())/1000); // i.e. round down
 
   if (countDown > 0) {
-
     push();
       textAlign(CENTER, TOP);
       textSize(128);
       textStyle(BOLD);
       text(countDown, CanvasWidth/2, CanvasHeight/2);
     pop();
-
   }
 
   if (countDown >= 0) {
-
     return countDown;
-
   } else {
-
     return false;
   }
+}
+
+// normal_parabola(t)
+//
+//   Formula of a generic parabola:
+//
+//     h = at^2 + bt + c   ("height" depends on "time" here)
+//
+//   We want to start at height 0, reach a peak halfway through, and
+//   end at height 0. Given these points: (0, 0), (0.5, 1), (1, 0),
+//   the solution is h = -4*t^2 + 4*t + 0. With input t that ranges
+//   from 0.0 to 1.0, the output domain of h will likewise be 0.0 to
+//   1.0 (peaking at 1.0 when t=0.5, then retunring to 0.0).
+//   Thus, this is a "normalized" parabola, and its input and output
+//   can be trivially scaled based on min/max time and min/max height.
+//    
+//       h |           (0.5, 1.0)
+//         |          *
+//         |    *            *
+//         | *                  *
+//         |*                    *
+//       --*----------------------*----------
+//    (0.0, 0.0)              (1.0, 0.0)    t
+//
+function normal_parabola(t) {
+  return (-4 * Math.pow(t,2)) + (4 * t);
 }
 
 // Hatolie 83 pt - Fall
