@@ -10,7 +10,7 @@ const GameScreens = {
 const Characters = [
   {
     name: "Squirrel",
-    spritePath:"assets/sprites/FD_L_squirrel.png",
+    spritePath:"assets/sprites/FD_L_Squirrel.png",
     sprite:null,
     stats: {mass: 5, speed: 6, armor: 3}
   },
@@ -64,6 +64,11 @@ let Canvas;
 let CanvasWidth = 512;
 let CanvasHeight = 512;
 
+let CountDownTimestamp = 0;
+
+let CloudOffsetX = -50;
+let CloudOffsetY = 0;
+
 const Fonts = {
   Hatolie: null,
   CalligraphyWet: null
@@ -74,7 +79,7 @@ let Player = {
   name: "",
   character: 0, // 0, 1, 2, ... index from Characters array
   positionXPercent: 50,
-  positionYPercent: 5,
+  positionYPercent: 15,
   facing:"left",
  // easterEggSpriteSelected: false 
 };
@@ -149,10 +154,29 @@ function setup() {
 }
 
 function mouseClicked_IntroScreenStartButton() {
+
+  transitionToCharacterSelectScreen();
+
+  userStartAudio();
+  AudioAllowed = true;
+
+}
+
+function mouseClicked_CharacterSelectScreen_PlayGameButton() {
+  
+  transitionToWaitingForPlayersScreen();
+}
+
+function input_CharacterSelectScreen_NameInput() {
+  console.log('you are typing: ', this.value());
+  Player.name = this.value();
+}
+
+function transitionToCharacterSelectScreen() {
+
   GameScreen = GameScreens.CharacterSelect;
   //select("UI").remove(); not sure if this would remove its children
   removeElements(); // Removes all p5 elements (so, the UI)
-
 
   let UI = createDiv();
   UI.parent("main");
@@ -176,19 +200,22 @@ function mouseClicked_IntroScreenStartButton() {
   PlayGameButton.addClass("bigbutton");
   PlayGameButton.mouseClicked(mouseClicked_CharacterSelectScreen_PlayGameButton);
 
-  userStartAudio();
-  AudioAllowed = true;
-
 }
 
-function mouseClicked_CharacterSelectScreen_PlayGameButton() {
+function transitionToWaitingForPlayersScreen() {
+  
   GameScreen = GameScreens.WaitingForPlayers;
   removeElements(); // Removes all p5 elements (so, the UI)
+
+  startTimer(5);
 }
 
-function input_CharacterSelectScreen_NameInput() {
-  console.log('you are typing: ', this.value());
-  Player.name = this.value();
+function transitionToPlayScreen() {
+  GameScreen = GameScreens.Play;
+}
+
+function transitionToFinishAnimationScreen() {
+  
 }
 
 function draw() {
@@ -222,14 +249,36 @@ function draw() {
 }
 
 function drawClouds() {
+  push();
+    translate(CloudOffsetX, CloudOffsetY);
+    image(OtherSprites.Cloud1, -10,-20);
+    image(OtherSprites.Cloud2, 0,150);
+    image(OtherSprites.Cloud3, 0,300);
+    push();
+      translate(-600, 10);
+      image(OtherSprites.Cloud2, -10,-20);
+      image(OtherSprites.Cloud3, 0,150);
+      image(OtherSprites.Cloud1, 0,300);
+      image(OtherSprites.Cloud3a, -100,150);
+    pop();
+    translate(CloudOffsetX, CloudOffsetY);
+    image(OtherSprites.Cloud1a, 200,200);
+    image(OtherSprites.Cloud2a, -100,150);
+    image(OtherSprites.Cloud3a, 200,300);
+    push();
+      translate(-700, -100);
+      image(OtherSprites.Cloud2a, 200,200);
+      image(OtherSprites.Cloud3a, -100,150);
+      image(OtherSprites.Cloud1a, 200,300);
+    pop();
+  pop();
+}
 
-
-  image(OtherSprites.Cloud1, -10,-20);
-  image(OtherSprites.Cloud2, 0,150);
-  image(OtherSprites.Cloud3, 0,300);
-  image(OtherSprites.Cloud1a, 200,200);
-  image(OtherSprites.Cloud2a, -100,150);
-  image(OtherSprites.Cloud3a, 200,300);
+function updateCloudsX() {
+  CloudOffsetX += 0.01;
+}
+function updateCloudsY() {
+  CloudOffsetY += -0.10;
 }
 
 function drawIntroScreen() {
@@ -237,6 +286,7 @@ function drawIntroScreen() {
   background(SkyColor);
   //drawTitle('Intro'); // todo remove
 
+  updateCloudsX();
   drawClouds();
 
   drawLogo(70,30);
@@ -250,6 +300,7 @@ function drawCharacterSelectScreen() {
 
   background(SkyColor);
 
+  updateCloudsX();
   drawClouds();
 
   drawTitle('Select Your Character'); // todo improve
@@ -300,8 +351,9 @@ function drawCharacterSelectScreen() {
     // text("armor: " + Characters[Player.character].stats.armor, 200, 150+60);
   pop();
 
-  text(xIndex, 10,10);
-  text(yIndex, 30,10);
+  // Cursor selection index indicators for debug
+  //text(xIndex, 10,10);
+  //text(yIndex, 30,10);
 
 }
 
@@ -321,8 +373,10 @@ function mouseClicked() {
   }
 }
 
-function updatePlayer(acceleration) {
-  const LRMove = 0.3;
+function updatePlayer() {
+
+  const LRMove = massToXAccel(Characters[Player.character].stats.mass);
+
   if (keyIsDown(LEFT_ARROW)) {
     Player.facing="left";
     Player.positionXPercent -= LRMove;
@@ -330,6 +384,7 @@ function updatePlayer(acceleration) {
       Player.positionXPercent = 0;
     }
   }
+
   if (keyIsDown(RIGHT_ARROW)) {
     Player.facing="right";
     Player.positionXPercent += LRMove;
@@ -338,40 +393,67 @@ function updatePlayer(acceleration) {
     }
   }
 
-  Player.positionYPercent += 1/Characters[Player.character].stats.mass * acceleration;
+  if (GameScreen == GameScreens.Play) {
+    //Player.positionYPercent += 1/Characters[Player.character].stats.mass * acceleration;
+    Player.positionYPercent += massToYAccel(Characters[Player.character].stats.mass);
+  }
 }
+
+let WaitingForPlayersJump_t = 0;
 
 function drawWaitingForPlayersScreen() {
   
   background(SkyColor);
 
+  updateCloudsX();
   drawClouds();
 
-  drawTitle('Waiting for others...'); // todo remove
+  drawTitle('Waiting for others...');
 
-  updatePlayer(0.2);
-  push();
-    imageMode(CENTER);
-    let playerXCoord = CanvasWidth * Player.positionXPercent/100;
-    if(Player.facing=="right"){
-      scale(-1,1);
-      playerXCoord = -playerXCoord;
-    }
-    image(
-      Characters[Player.character].sprite,
-      playerXCoord,
-      CanvasHeight * Player.positionYPercent/100
-      );
-  pop();
+  let countdownResult = drawCountdown();
+  if (false === countdownResult) {
+
+    transitionToPlayScreen();
+
+  } else if (0 === countdownResult) {
+
+    push();
+      textAlign(CENTER, TOP);
+      textSize(128);
+      textStyle(BOLD);
+      text("GO!", CanvasWidth/2, CanvasHeight/2);
+    pop();
+
+  }
+
+  updatePlayer();
+
+  let PlayerYPercentOffset = 0;
+  let jumpProgress = 0;
+  if (0 === countdownResult) {
+    jumpProgress = 1 - ((CountDownTimestamp - millis()) / 1000);
+    console.log('', WaitingForPlayersJump_t, 'frames -- ', jumpProgress, '% ', CountDownTimestamp, '-', millis(), ' = ', CountDownTimestamp - millis());
+    PlayerYPercentOffset = -10 * normal_parabola(jumpProgress);
+
+    //PlayerYPercentOffset = -10 * normal_parabola(WaitingForPlayersJump_t / 60);
+    //console.log('', WaitingForPlayersJump_t, 'frames -- ', PlayerYPercentOffset, '% ');
+    WaitingForPlayersJump_t++;
+  }
+
+  drawPlayer(PlayerYPercentOffset);
+
 }
 
 function drawPlayScreen() {
   
   background(SkyColor);
 
+  updateCloudsX();
+  updateCloudsY();
   drawClouds();
 
-  drawTitle('Play'); // todo remove
+  updatePlayer();
+  drawPlayer(0);
 }
 
 function drawFinishAnimationScreen() {
@@ -381,6 +463,24 @@ function drawFinishAnimationScreen() {
   drawClouds();
 
   drawTitle('Finish Animation'); // todo remove
+}
+
+function drawPlayer(percentOffsetY) {
+  push();
+
+    imageMode(CENTER);
+    let playerXCoord = percentToX(Player.positionXPercent);
+    if(Player.facing=="right"){
+      scale(-1,1);
+      playerXCoord = -playerXCoord;
+    }
+    image(
+      Characters[Player.character].sprite,
+      playerXCoord,
+      percentToY(Player.positionYPercent + percentOffsetY)
+      );
+
+  pop();
 }
 
 function drawTitle(title) {
@@ -404,6 +504,79 @@ function drawLogo(x,y) {
     textFont(Fonts.CalligraphyWet);
     text("DAMAGE", x+110,y);
   pop();
+}
+
+function percentToX(percent) {
+  return CanvasWidth * percent/100;
+}
+
+function percentToY(percent) {
+  return CanvasHeight * percent/100;
+}
+
+function massToXAccel(mass) {
+  return 0.3 * 10/mass;
+}
+
+function massToYAccel(mass) {
+  return 0.05 * 10/mass;
+  // todo: determine maximum amount of screens to allow any player
+  //       to advance within the play time, and scale by that
+}
+
+function startTimer(seconds) {
+  CountDownTimestamp = millis() + (seconds * 1000);
+}
+
+// If the current CountDownTimestamp is still in the future, this
+// function draws an appropriate countdown to the canvas. As a
+// special case, 0 is not drawn to the canvas. This function
+// returns the countdown value as an integer (down to 0), and
+// then returns false when the countdown has completed.
+function drawCountdown() {
+
+  let countDown = Math.floor((CountDownTimestamp - millis())/1000); // i.e. round down
+
+  if (countDown > 0) {
+    push();
+      textAlign(CENTER, TOP);
+      textSize(128);
+      textStyle(BOLD);
+      text(countDown, CanvasWidth/2, CanvasHeight/2);
+    pop();
+  }
+
+  if (countDown >= 0) {
+    return countDown;
+  } else {
+    return false;
+  }
+}
+
+// normal_parabola(t)
+//
+//   Formula of a generic parabola:
+//
+//     h = at^2 + bt + c   ("height" depends on "time" here)
+//
+//   We want to start at height 0, reach a peak halfway through, and
+//   end at height 0. Given these points: (0, 0), (0.5, 1), (1, 0),
+//   the solution is h = -4*t^2 + 4*t + 0. With input t that ranges
+//   from 0.0 to 1.0, the output domain of h will likewise be 0.0 to
+//   1.0 (peaking at 1.0 when t=0.5, then retunring to 0.0).
+//   Thus, this is a "normalized" parabola, and its input and output
+//   can be trivially scaled based on min/max time and min/max height.
+//    
+//       h |           (0.5, 1.0)
+//         |          *
+//         |    *            *
+//         | *                  *
+//         |*                    *
+//       --*----------------------*----------
+//    (0.0, 0.0)              (1.0, 0.0)    t
+//
+function normal_parabola(t) {
+  return (-4 * Math.pow(t,2)) + (4 * t);
 }
 
 // Hatolie 83 pt - Fall
