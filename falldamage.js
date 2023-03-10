@@ -40,6 +40,18 @@ const Characters = [
     spritePath:"assets/sprites/FD_L_Chicken.png",
     sprite:null,
     stats: {mass: 7, speed: 3, armor: 7}
+  },
+  {
+    name: "Snake",
+    spritePath:"assets/sprites/FD_L_Snake.png",
+    sprite:null,
+    stats: {mass: 5, speed: 9, armor: 3}
+  },
+  {
+    name: "Frog",
+    spritePath:"assets/sprites/FD_L_Frog.png",
+    sprite:null,
+    stats: {mass: 5, speed: 9, armor: 3}
   }
 ];
 
