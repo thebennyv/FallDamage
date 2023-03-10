@@ -63,6 +63,9 @@ let CanvasHeight = 512;
 
 let CountDownTimestamp = 0;
 
+let CloudOffsetX = -50;
+let CloudOffsetY = 0;
+
 const Fonts = {
   Hatolie: null,
   CalligraphyWet: null
@@ -238,9 +241,6 @@ function draw() {
 
 }
 
-let CloudOffsetX = -50;
-let CloudOffsetY = 0;
-
 function drawClouds() {
   push();
     translate(CloudOffsetX, CloudOffsetY);
@@ -401,8 +401,20 @@ function drawWaitingForPlayersScreen() {
   updatePlayer();
   drawPlayer();
 
-  if (!drawCountdown()) {
+  let countdownResult = drawCountdown();
+  if (false === countdownResult) {
+
     transitionToPlayScreen();
+
+  } else if (0 === countdownResult) {
+
+    push();
+      textAlign(CENTER, TOP);
+      textSize(128);
+      textStyle(BOLD);
+      text("GO!", CanvasWidth/2, CanvasHeight/2);
+    pop();
+
   }
 }
 
@@ -481,24 +493,40 @@ function massToXAccel(mass) {
 
 function massToYAccel(mass) {
   return 0.05 * 10/mass;
-  // todo: determine maximum amount of screens to allow any player to advance within the play time, and scale by that
+  // todo: determine maximum amount of screens to allow any player
+  //       to advance within the play time, and scale by that
 }
 
 function startTimer(seconds) {
   CountDownTimestamp = millis() + (seconds * 1000);
 }
 
+// If the current CountDownTimestamp is still in the future, this
+// function draws an appropriate countdown to the canvas. As a
+// special case, 0 is not drawn to the canvas. This function
+// returns the countdown value as an integer (down to 0), and
+// then returns false when the countdown has completed.
 function drawCountdown() {
 
   let countDown = round((CountDownTimestamp - millis())/1000);
 
+  if (countDown > 0) {
+
+    push();
+      textAlign(CENTER, TOP);
+      textSize(128);
+      textStyle(BOLD);
+      text(countDown, CanvasWidth/2, CanvasHeight/2);
+    pop();
+
+  }
+
   if (countDown >= 0) {
 
-    text(countDown, CanvasWidth-30, 30);
-    return true;
+    return countDown;
 
   } else {
-    
+
     return false;
   }
 }
