@@ -16,13 +16,16 @@ const Characters = [
   },
   {
     name: "Turtle",
-    spritePath:"assets/sprites/turtle.png",
+    spritePath:"assets/sprites/FD_L_Turtle.png",
     sprite:null,
-    stats: {mass: 4, speed: 7, armor: 10}
+    stats: {mass: 4, speed: 7, armor: 10},
+   // easterEggSpritePath:"assets/sprites/FD_L_TurtleSpecial",
+   // easterEggSprite:null
+
   },
   {
     name: "Bird",
-    spritePath:"assets/sprites/bird.png",
+    spritePath:"assets/sprites/FD_L_Bird.png",
     sprite:null,
     stats: {mass: 2, speed: 10, armor: 1}
   },
@@ -34,7 +37,7 @@ const Characters = [
   },
   {
     name: "Chicken",
-    spritePath:"assets/sprites/chicken.png",
+    spritePath:"assets/sprites/FD_L_Chicken.png",
     sprite:null,
     stats: {mass: 7, speed: 3, armor: 7}
   }
@@ -77,7 +80,8 @@ let Player = {
   character: 0, // 0, 1, 2, ... index from Characters array
   positionXPercent: 50,
   positionYPercent: 15,
-  facing:"left"
+  facing:"left",
+ // easterEggSpriteSelected: false 
 };
 
 function uuidv4() {
@@ -92,6 +96,9 @@ function preload() {
   // Sprites
   for (let i = 0; i < Characters.length; i++) {
     Characters[i].sprite = loadImage(Characters[i].spritePath);
+   // if(Object.hasOwn(Characters[i], 'easterEggSpritePath')){
+    //  Characters[i].easterEggSprite = loadImage(Characters[i].easterEggSpritePath);
+    //}
   }
 
   Fonts.Hatolie = loadFont('assets/fonts/Hatolie.ttf');
@@ -359,6 +366,9 @@ function mouseClicked() {
 
     if (xIndex < Characters.length && yIndex == 1) {
       Player.character = xIndex;
+     // if(keyIsDown(SHIFT)==true){
+     // easterEggSpriteSelected=true,
+     // };
     }
   }
 }
