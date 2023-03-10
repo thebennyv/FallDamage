@@ -214,15 +214,40 @@ function draw() {
 
 }
 
+let CloudOffsetX = -50;
+let CloudOffsetY = 0;
+
 function drawClouds() {
+  push();
+    translate(CloudOffsetX, CloudOffsetY);
+    image(OtherSprites.Cloud1, -10,-20);
+    image(OtherSprites.Cloud2, 0,150);
+    image(OtherSprites.Cloud3, 0,300);
+    push();
+      translate(-600, 10);
+      image(OtherSprites.Cloud2, -10,-20);
+      image(OtherSprites.Cloud3, 0,150);
+      image(OtherSprites.Cloud1, 0,300);
+      image(OtherSprites.Cloud3a, -100,150);
+    pop();
+    translate(CloudOffsetX, CloudOffsetY);
+    image(OtherSprites.Cloud1a, 200,200);
+    image(OtherSprites.Cloud2a, -100,150);
+    image(OtherSprites.Cloud3a, 200,300);
+    push();
+      translate(-700, -100);
+      image(OtherSprites.Cloud2a, 200,200);
+      image(OtherSprites.Cloud3a, -100,150);
+      image(OtherSprites.Cloud1a, 200,300);
+    pop();
+  pop();
+}
 
-
-  image(OtherSprites.Cloud1, -10,-20);
-  image(OtherSprites.Cloud2, 0,150);
-  image(OtherSprites.Cloud3, 0,300);
-  image(OtherSprites.Cloud1a, 200,200);
-  image(OtherSprites.Cloud2a, -100,150);
-  image(OtherSprites.Cloud3a, 200,300);
+function advanceCloudsX() {
+  CloudOffsetX += 0.01;
+}
+function advanceCloudsY() {
+  CloudOffsetY += -0.1;
 }
 
 function drawIntroScreen() {
@@ -230,6 +255,7 @@ function drawIntroScreen() {
   background(SkyColor);
   //drawTitle('Intro'); // todo remove
 
+  advanceCloudsX();
   drawClouds();
 
   drawLogo(70,30);
@@ -243,6 +269,7 @@ function drawCharacterSelectScreen() {
 
   background(SkyColor);
 
+  advanceCloudsX();
   drawClouds();
 
   drawTitle('Select Your Character'); // todo improve
@@ -293,8 +320,9 @@ function drawCharacterSelectScreen() {
     // text("armor: " + Characters[Player.character].stats.armor, 200, 150+60);
   pop();
 
-  text(xIndex, 10,10);
-  text(yIndex, 30,10);
+  // Cursor selection index indicators for debug
+  //text(xIndex, 10,10);
+  //text(yIndex, 30,10);
 
 }
 
@@ -336,6 +364,8 @@ function drawWaitingForPlayersScreen() {
   
   background(SkyColor);
 
+  advanceCloudsX();
+  advanceCloudsY();
   drawClouds();
 
   drawTitle('Waiting for others...'); // todo remove
