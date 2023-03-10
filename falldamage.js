@@ -10,7 +10,7 @@ const GameScreens = {
 const Characters = [
   {
     name: "Squirrel",
-    spritePath:"assets/sprites/FD_L_squirrel.png",
+    spritePath:"assets/sprites/FD_L_Squirrel.png",
     sprite:null,
     stats: {mass: 5, speed: 6, armor: 3}
   },
@@ -421,7 +421,7 @@ function drawWaitingForPlayersScreen() {
   let PlayerYPercentOffset = 0;
   let jumpProgress = 0;
   if (0 === countdownResult) {
-    jumpProgress = 1 - (CountDownTimestamp - millis()) / 1000;
+    jumpProgress = 1 - ((CountDownTimestamp - millis()) / 1000);
     console.log('', WaitingForPlayersJump_t, 'frames -- ', jumpProgress, '% ', CountDownTimestamp, '-', millis(), ' = ', CountDownTimestamp - millis());
     PlayerYPercentOffset = -10 * normal_parabola(jumpProgress);
 
