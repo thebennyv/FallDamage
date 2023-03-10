@@ -61,6 +61,8 @@ let Canvas;
 let CanvasWidth = 512;
 let CanvasHeight = 512;
 
+let CountDownTimestamp = 0;
+
 const Fonts = {
   Hatolie: null,
   CalligraphyWet: null
@@ -142,10 +144,29 @@ function setup() {
 }
 
 function mouseClicked_IntroScreenStartButton() {
+
+  transitionToCharacterSelectScreen();
+
+  userStartAudio();
+  AudioAllowed = true;
+
+}
+
+function mouseClicked_CharacterSelectScreen_PlayGameButton() {
+  
+  transitionToWaitingForPlayersScreen();
+}
+
+function input_CharacterSelectScreen_NameInput() {
+  console.log('you are typing: ', this.value());
+  Player.name = this.value();
+}
+
+function transitionToCharacterSelectScreen() {
+
   GameScreen = GameScreens.CharacterSelect;
   //select("UI").remove(); not sure if this would remove its children
   removeElements(); // Removes all p5 elements (so, the UI)
-
 
   let UI = createDiv();
   UI.parent("main");
@@ -169,19 +190,22 @@ function mouseClicked_IntroScreenStartButton() {
   PlayGameButton.addClass("bigbutton");
   PlayGameButton.mouseClicked(mouseClicked_CharacterSelectScreen_PlayGameButton);
 
-  userStartAudio();
-  AudioAllowed = true;
-
 }
 
-function mouseClicked_CharacterSelectScreen_PlayGameButton() {
+function transitionToWaitingForPlayersScreen() {
+  
   GameScreen = GameScreens.WaitingForPlayers;
   removeElements(); // Removes all p5 elements (so, the UI)
+
+  startTimer(30);
 }
 
-function input_CharacterSelectScreen_NameInput() {
-  console.log('you are typing: ', this.value());
-  Player.name = this.value();
+function transitionToPlayScreen() {
+  GameScreen = GameScreens.Play;
+}
+
+function transitionToFinishAnimationScreen() {
+  
 }
 
 function draw() {
@@ -243,10 +267,10 @@ function drawClouds() {
   pop();
 }
 
-function advanceCloudsX() {
+function updateCloudsX() {
   CloudOffsetX += 0.01;
 }
-function advanceCloudsY() {
+function updateCloudsY() {
   CloudOffsetY += -0.1;
 }
 
@@ -255,7 +279,7 @@ function drawIntroScreen() {
   background(SkyColor);
   //drawTitle('Intro'); // todo remove
 
-  advanceCloudsX();
+  updateCloudsX();
   drawClouds();
 
   drawLogo(70,30);
@@ -269,7 +293,7 @@ function drawCharacterSelectScreen() {
 
   background(SkyColor);
 
-  advanceCloudsX();
+  updateCloudsX();
   drawClouds();
 
   drawTitle('Select Your Character'); // todo improve
@@ -340,7 +364,9 @@ function mouseClicked() {
 }
 
 function updatePlayer() {
+
   const LRMove = massToXAccel(Characters[Player.character].stats.mass);
+
   if (keyIsDown(LEFT_ARROW)) {
     Player.facing="left";
     Player.positionXPercent -= LRMove;
@@ -348,6 +374,7 @@ function updatePlayer() {
       Player.positionXPercent = 0;
     }
   }
+
   if (keyIsDown(RIGHT_ARROW)) {
     Player.facing="right";
     Player.positionXPercent += LRMove;
@@ -356,21 +383,51 @@ function updatePlayer() {
     }
   }
 
-  //Player.positionYPercent += 1/Characters[Player.character].stats.mass * acceleration;
-  Player.positionYPercent += massToYAccel(Characters[Player.character].stats.mass);
+  if (GameScreen == GameScreens.Play) {
+    //Player.positionYPercent += 1/Characters[Player.character].stats.mass * acceleration;
+    Player.positionYPercent += massToYAccel(Characters[Player.character].stats.mass);
+  }
 }
 
 function drawWaitingForPlayersScreen() {
   
   background(SkyColor);
 
-  advanceCloudsX();
-  advanceCloudsY();
+  updateCloudsX();
   drawClouds();
 
-  drawTitle('Waiting for others...'); // todo remove
+  drawTitle('Waiting for others...');
 
   updatePlayer();
+  drawPlayer();
+
+  if (!drawCountdown()) {
+    transitionToPlayScreen();
+  }
+}
+
+function drawPlayScreen() {
+  
+  background(SkyColor);
+
+  updateCloudsX();
+  updateCloudsY();
+  drawClouds();
+
+  updatePlayer();
+  drawPlayer();
+}
+
+function drawFinishAnimationScreen() {
+  
+  background(SkyColor);
+
+  drawClouds();
+
+  drawTitle('Finish Animation'); // todo remove
+}
+
+function drawPlayer() {
 
   push();
     imageMode(CENTER);
@@ -385,24 +442,6 @@ function drawWaitingForPlayersScreen() {
       percentToY(Player.positionYPercent)
       );
   pop();
-}
-
-function drawPlayScreen() {
-  
-  background(SkyColor);
-
-  drawClouds();
-
-  drawTitle('Play'); // todo remove
-}
-
-function drawFinishAnimationScreen() {
-  
-  background(SkyColor);
-
-  drawClouds();
-
-  drawTitle('Finish Animation'); // todo remove
 }
 
 function drawTitle(title) {
@@ -443,6 +482,25 @@ function massToXAccel(mass) {
 function massToYAccel(mass) {
   return 0.05 * 10/mass;
   // todo: determine maximum amount of screens to allow any player to advance within the play time, and scale by that
+}
+
+function startTimer(seconds) {
+  CountDownTimestamp = millis() + (seconds * 1000);
+}
+
+function drawCountdown() {
+
+  let countDown = round((CountDownTimestamp - millis())/1000);
+
+  if (countDown >= 0) {
+
+    text(countDown, CanvasWidth-30, 30);
+    return true;
+
+  } else {
+    
+    return false;
+  }
 }
 
 // Hatolie 83 pt - Fall
