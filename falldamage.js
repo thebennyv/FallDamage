@@ -51,7 +51,7 @@ const Characters = [
     name: "Frog",
     spritePath:"assets/sprites/FD_L_Frog.png",
     sprite:null,
-    stats: {mass: 5, speed: 9, armor: 3}
+    stats: {mass: 4, speed: 6, armor: 4}
   }
 ];
 
@@ -61,7 +61,8 @@ const OtherSprites = {
   Cloud3: null,
   Cloud1a: null,
   Cloud2a: null,
-  Cloud3a: null
+  Cloud3a: null,
+  EggSplat: null
 }
 
 let GameScreen = GameScreens.Intro;
@@ -122,7 +123,7 @@ function preload() {
   OtherSprites.Cloud1a = loadImage('assets/sprites/cloud1_small.png');
   OtherSprites.Cloud2a = loadImage('assets/sprites/cloud2_small.png');
   OtherSprites.Cloud3a = loadImage('assets/sprites/cloud3_small.png');
-
+  OtherSprites.EggSplat = loadImage('assets/sprites/FD_EggSplat.png');
   // Sounds
   IntroSong = loadSound('assets/music/2021-08-30_-_Boss_Time_-_www.FesliyanStudios.com.mp3');
 }
@@ -139,7 +140,7 @@ function setup() {
   OtherSprites.Cloud1a.resize(500,0);
   OtherSprites.Cloud2a.resize(500,0);
   OtherSprites.Cloud3a.resize(500,0);
-
+  
   CanvasWidth = Math.min(CanvasWidth, displayWidth);
   CanvasHeight = Math.min(CanvasHeight, displayHeight);
   Canvas = createCanvas(CanvasWidth, CanvasHeight);
@@ -366,9 +367,14 @@ function drawCharacterSelectScreen() {
   // Cursor selection index indicators for debug
   //text(xIndex, 10,10);
   //text(yIndex, 30,10);
-
+ 
 }
-
+function drawEggSplat(){
+  push();
+    imageMode(CENTER);
+    image(OtherSprites.EggSplat,CanvasWidth/2,CanvasHeight/2);
+  pop();
+}
 function mouseClicked() {
 
   if (GameScreen == GameScreens.CharacterSelect) {
@@ -394,6 +400,7 @@ function updatePlayer() {
     Player.positionXPercent -= LRMove;
     if (Player.positionXPercent < 0) {
       Player.positionXPercent = 0;
+      drawEggSplat();
     }
   }
 
@@ -402,6 +409,7 @@ function updatePlayer() {
     Player.positionXPercent += LRMove;
     if (Player.positionXPercent > 100) {
       Player.positionXPercent = 100;
+      drawEggSplat();
     }
   }
 
@@ -491,7 +499,7 @@ function drawPlayer(percentOffsetY) {
       playerXCoord,
       percentToY(Player.positionYPercent + percentOffsetY)
       );
-
+    
   pop();
 }
 
