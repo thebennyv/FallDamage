@@ -56,7 +56,30 @@ let GameScreen = GameScreens.Intro;
 
 let SkyColor;
 
-let IntroSong;
+const Music = {
+  Intro: {
+    path: "assets/music/FallDamage_Intro_Medium.mp3",
+    sound: null
+  },
+  CharacterSelect: {
+    path: "assets/music/FallDamage_CharacterSelectLoop_Medium.mp3",
+    sound: null
+  },
+  Play: {
+    path: "assets/music/FallDamage_Play_Medium.mp3",
+    sound: null
+  },
+  FinishAnimation: {
+    path: "assets/music/FallDamage_FinishAnimation_Medium.mp3",
+    sound: null
+  },
+}
+const SoundEffects = {
+  Wind: {
+    path: "assets/sounds/FallDamage_Wind_Medium.mp3",
+    sound: null
+  }
+}
 let AudioAllowed = false;
 let IntroSongPlayed = false;
 
@@ -73,6 +96,33 @@ const Fonts = {
   Hatolie: null,
   CalligraphyWet: null
 }
+
+let SimulatedPlayers = [
+  {
+    id: uuidv4(),
+    name: "Bob",
+    character: 0, // 0, 1, 2, ... index from Characters array
+    positionXPercent: 70,
+    positionYPercent: 15,
+    facing:"left",
+  },
+  {
+    id: uuidv4(),
+    name: "Sue",
+    character: 1, // 0, 1, 2, ... index from Characters array
+    positionXPercent: 30,
+    positionYPercent: 15,
+    facing:"left",
+  },
+  {
+    id: uuidv4(),
+    name: "Jarvis",
+    character: 2, // 0, 1, 2, ... index from Characters array
+    positionXPercent: 10,
+    positionYPercent: 15,
+    facing:"left",
+  }
+]
 
 let Player = {
   id: uuidv4(),
@@ -100,10 +150,6 @@ function preload() {
     //  Characters[i].easterEggSprite = loadImage(Characters[i].easterEggSpritePath);
     //}
   }
-
-  Fonts.Hatolie = loadFont('assets/fonts/Hatolie.ttf');
-  Fonts.CalligraphyWet = loadFont('assets/fonts/CalligraphyWet.ttf');
-
   OtherSprites.Cloud1 = loadImage('assets/sprites/cloud1_small.png');
   OtherSprites.Cloud2 = loadImage('assets/sprites/cloud2_small.png');
   OtherSprites.Cloud3 = loadImage('assets/sprites/cloud3_small.png');
@@ -111,8 +157,18 @@ function preload() {
   OtherSprites.Cloud2a = loadImage('assets/sprites/cloud2_small.png');
   OtherSprites.Cloud3a = loadImage('assets/sprites/cloud3_small.png');
 
+  // Fonts
+  Fonts.Hatolie = loadFont('assets/fonts/Hatolie.ttf');
+  Fonts.CalligraphyWet = loadFont('assets/fonts/CalligraphyWet.ttf');
+
   // Sounds
-  IntroSong = loadSound('assets/music/2021-08-30_-_Boss_Time_-_www.FesliyanStudios.com.mp3');
+  //IntroSong = loadSound('assets/music/2021-08-30_-_Boss_Time_-_www.FesliyanStudios.com.mp3');
+  for (var name in Music) {
+    Music[name].sound = loadSound(Music[name].path);
+  }
+  for (var name in SoundEffects) {
+    SoundEffects[name].sound = loadSound(SoundEffects[name].path);
+  }
 }
 
 function setup() {
@@ -160,6 +216,13 @@ function mouseClicked_IntroScreenStartButton() {
   userStartAudio();
   AudioAllowed = true;
 
+  Music.Intro.sound.onended(introSong_onended);
+  Music.Intro.sound.play();
+
+}
+
+function introSong_onended(duration) {
+  Music.CharacterSelect.sound.loop();
 }
 
 function mouseClicked_CharacterSelectScreen_PlayGameButton() {
@@ -212,10 +275,32 @@ function transitionToWaitingForPlayersScreen() {
 
 function transitionToPlayScreen() {
   GameScreen = GameScreens.Play;
+
+  for (var name in Music) {
+    Music[name].sound.onended(donothing_onended);
+    Music[name].sound.stop();
+  }
+
+  Music.Play.sound.onended(playSong_onended);
+  Music.Play.sound.play();
+
+  SoundEffects.Wind.sound.play();
+}
+
+function donothing_onended(duration) {
+
+}
+
+function playSong_onended(duration) {
+  transitionToFinishAnimationScreen();
 }
 
 function transitionToFinishAnimationScreen() {
-  
+  GameScreen = GameScreens.FinishAnimation;
+
+  SoundEffects.Wind.sound.stop();
+
+  Music.FinishAnimation.sound.play();
 }
 
 function draw() {
@@ -399,6 +484,32 @@ function updatePlayer() {
   }
 }
 
+
+function simulateOtherPlayers() {
+
+  for (let i = 0; i < SimulatedPlayers.length; i++) {
+    if (GameScreen == GameScreens.Play) {
+      SimulatedPlayers[i].positionYPercent += massToYAccel(Characters[SimulatedPlayers[i].character].stats.mass);
+    }
+    drawOtherPlayer(SimulatedPlayers[i]);
+  }
+}
+
+function getAdjustedOtherPlayerPositionYPercent(otherPlayer) {
+
+  let effectivePlayerYPercent = getPlayerEffectivePositionYPercent();
+  let yPercentOffset = Player.positionYPercent - effectivePlayerYPercent;
+  return otherPlayer.positionYPercent - yPercentOffset;
+}
+
+function getPlayerEffectivePositionYPercent() {
+  if (Player.positionYPercent > 80) {
+    return 80;
+  } else {
+    return Player.positionYPercent;
+  }
+}
+
 let WaitingForPlayersJump_t = 0;
 
 function drawWaitingForPlayersScreen() {
@@ -431,6 +542,8 @@ function drawWaitingForPlayersScreen() {
   let PlayerYPercentOffset = 0;
   let jumpProgress = 0;
   if (0 === countdownResult) {
+    Music.CharacterSelect.sound.stop();
+
     jumpProgress = 1 - ((CountDownTimestamp - millis()) / 1000);
     console.log('', WaitingForPlayersJump_t, 'frames -- ', jumpProgress, '% ', CountDownTimestamp, '-', millis(), ' = ', CountDownTimestamp - millis());
     PlayerYPercentOffset = -10 * normal_parabola(jumpProgress);
@@ -441,6 +554,8 @@ function drawWaitingForPlayersScreen() {
   }
 
   drawPlayer(PlayerYPercentOffset);
+
+  simulateOtherPlayers();
 
 }
 
@@ -454,6 +569,8 @@ function drawPlayScreen() {
 
   updatePlayer();
   drawPlayer(0);
+
+  simulateOtherPlayers();
 }
 
 function drawFinishAnimationScreen() {
@@ -477,7 +594,25 @@ function drawPlayer(percentOffsetY) {
     image(
       Characters[Player.character].sprite,
       playerXCoord,
-      percentToY(Player.positionYPercent + percentOffsetY)
+      percentToY(getPlayerEffectivePositionYPercent() + percentOffsetY)
+      );
+
+  pop();
+}
+
+function drawOtherPlayer(otherPlayer) {
+  push();
+
+    imageMode(CENTER);
+    let playerXCoord = percentToX(otherPlayer.positionXPercent);
+    if(otherPlayer.facing=="right"){
+      scale(-1,1);
+      playerXCoord = -playerXCoord;
+    }
+    image(
+      Characters[otherPlayer.character].sprite,
+      playerXCoord,
+      percentToY(getAdjustedOtherPlayerPositionYPercent(otherPlayer))
       );
 
   pop();
