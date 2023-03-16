@@ -1,10 +1,17 @@
 
 const GameScreens = {
-	Intro:           Symbol("Intro"),
-	CharacterSelect: Symbol("CharacterSelect"),
-	WaitingForPlayers: Symbol("WaitingForPlayers"),
-	Play:            Symbol("Play"),
-  FinishAnimation: Symbol("FinishAnimation")
+	Intro:           Symbol.for("Intro"),
+	CharacterSelect: Symbol.for("CharacterSelect"),
+	WaitingForPlayers: Symbol.for("WaitingForPlayers"),
+	Play:            Symbol.for("Play"),
+  FinishAnimation: Symbol.for("FinishAnimation")
+}
+
+const WeaponTypes = {
+	Egg:    Symbol.for("Egg"),
+	Acorn:  Symbol.for("Acorn"),
+	Spikes: Symbol.for("Spikes"),
+	Fangs:  Symbol.for("Fangs")
 }
 
 const Characters = [
@@ -12,7 +19,7 @@ const Characters = [
     name: "Squirrel",
     spritePath:"assets/sprites/FD_L_Squirrel.png",
     sprite:null,
-    stats: {mass: 5, speed: 6, armor: 3}
+    stats: {mass: 5, speed: 6, armor: 3, weapon: "Acorn"}
   },
   {
     name: "Turtle",
@@ -33,19 +40,19 @@ const Characters = [
     name: "Hedgehog",
     spritePath:"assets/sprites/FD_L_Hedgehog.png",
     sprite:null,
-    stats: {mass: 3, speed: 6, armor: 8, spike:4}
+    stats: {mass: 3, speed: 6, armor: 8, weapon: "Spikes"}
   },
   {
     name: "Chicken",
     spritePath:"assets/sprites/FD_L_Chicken.png",
     sprite:null,
-    stats: {mass: 7, speed: 3, armor: 7}
+    stats: {mass: 7, speed: 3, armor: 7, weapon: "Egg"}
   },
   {
     name: "Snake",
     spritePath:"assets/sprites/FD_L_Snake.png",
     sprite:null,
-    stats: {mass: 5, speed: 9, armor: 3}
+    stats: {mass: 5, speed: 9, armor: 3, weapon: "Fangs"}
   },
   {
     name: "Frog",
@@ -62,7 +69,9 @@ const OtherSprites = {
   Cloud1a: null,
   Cloud2a: null,
   Cloud3a: null,
-  EggSplat: null
+  EggSplat: null,
+  Egg: null,
+  Acorn: null
 }
 
 let GameScreen = GameScreens.Intro;
@@ -118,6 +127,7 @@ let SimulatedPlayers = [
     positionXPercent: 70,
     positionYPercent: 15,
     facing:"left",
+    woundedUntil:0
   },
   {
     id: uuidv4(),
@@ -126,6 +136,7 @@ let SimulatedPlayers = [
     positionXPercent: 30,
     positionYPercent: 15,
     facing:"left",
+    woundedUntil:0
   },
   {
     id: uuidv4(),
@@ -134,8 +145,11 @@ let SimulatedPlayers = [
     positionXPercent: 10,
     positionYPercent: 15,
     facing:"left",
+    woundedUntil:0
   }
 ]
+
+let Weapons = []
 
 let Player = {
   id: uuidv4(),
@@ -144,8 +158,15 @@ let Player = {
   positionXPercent: 50,
   positionYPercent: 15,
   facing:"left",
+  woundedUntil:0,
+  xBoostUntil:0,
+  weaponCooldownUntil:0
  // easterEggSpriteSelected: false 
 };
+
+const KEY_CODE_SPACEBAR = 32;
+const KEY_CODE_LEFT_ARROW = 37;
+const KEY_CODE_RIGHT_ARROW = 39;
 
 function uuidv4() {
   return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
@@ -170,6 +191,8 @@ function preload() {
   OtherSprites.Cloud2a = loadImage('assets/sprites/cloud2_small.png');
   OtherSprites.Cloud3a = loadImage('assets/sprites/cloud3_small.png');
   OtherSprites.EggSplat = loadImage('assets/sprites/FD_EggSplat.png');
+  OtherSprites.Egg = loadImage('assets/sprites/FD_Egg.png');
+  OtherSprites.Acorn = loadImage('assets/sprites/FD_Acorn.png');
 
   // Fonts
   Fonts.Hatolie = loadFont('assets/fonts/Hatolie.ttf');
@@ -455,12 +478,14 @@ function drawCharacterSelectScreen() {
   //text(yIndex, 30,10);
  
 }
+
 function drawEggSplat(){
   push();
     imageMode(CENTER);
     image(OtherSprites.EggSplat,CanvasWidth/2,CanvasHeight/2);
   pop();
 }
+
 function mouseClicked() {
 
   if (GameScreen == GameScreens.CharacterSelect) {
@@ -477,13 +502,87 @@ function mouseClicked() {
   }
 }
 
+function keyPressed() {
+  if (GameScreen == GameScreens.Play) {
+    if (key == ' ') { // Space Bar
+      weaponActivated();
+    }
+  }
+}
+
+function weaponActivated() {
+
+  let weaponString = Characters[Player.character].stats.weapon;
+
+  if (weaponString == Symbol.keyFor(WeaponTypes.Acorn)) {
+
+    console.log("throw acorn");
+    let cooldown = Player.weaponCooldownUntil - millis();
+    console.log("cooldown = ", cooldown);
+    if (cooldown <= 0) {
+      Weapons.push(
+        {
+          type: WeaponTypes.Acorn,
+          source: Player.id,
+          positionXPercent: Player.positionXPercent,
+          positionYPercent: Player.positionYPercent,
+          yVelocity: 7
+        }
+        );
+      Player.weaponCooldownUntil = millis() + 700; // "fire" refresh rate
+    }
+
+  } else if (weaponString == Symbol.keyFor(WeaponTypes.Egg)) {
+
+    console.log("throw egg");
+    let cooldown = Player.weaponCooldownUntil - millis();
+    console.log("cooldown = ", cooldown);
+    if (cooldown <= 0) {
+      Weapons.push(
+        {
+          type: WeaponTypes.Egg,
+          source: Player.id,
+          positionXPercent: Player.positionXPercent,
+          positionYPercent: Player.positionYPercent,
+          yVelocity: 5
+        }
+        );
+      Player.weaponCooldownUntil = millis() + 500; // "fire" refresh rate
+    }
+
+  } else if (weaponString == Symbol.keyFor(WeaponTypes.Fangs)) {
+
+    console.log("use fangs");
+    let cooldown = Player.weaponCooldownUntil - millis();
+    console.log("cooldown = ", cooldown);
+    if (cooldown <= 0) {
+      Player.xBoostUntil = millis() + 333; // accelerated for 1/3rd second
+      Player.weaponCooldownUntil = Player.xBoostUntil + 2000; // "fire" refresh rate
+    }
+
+  } else if (weaponString == Symbol.keyFor(WeaponTypes.Spikes)) {
+
+    console.log("use spikes");
+
+  } else {
+
+    console.log("no weapon");
+
+  }
+}
+
 function updatePlayer() {
 
-  const LRMove = massToXAccel(Characters[Player.character].stats.mass);
+  let xMove = massToXAccel(Characters[Player.character].stats.mass);
+  let xBoostFactor = 10;
+  let xBoost = xBoostFactor * ((Player.xBoostUntil - millis()) / 1000);
+  if (xBoost > 0) {
+    xMove += xBoost;
+  }
 
   if (keyIsDown(LEFT_ARROW)) {
     Player.facing="left";
-    Player.positionXPercent -= LRMove;
+    Player.positionXPercent -= xMove;
     if (Player.positionXPercent < 0) {
       Player.positionXPercent = 0;
       drawEggSplat();
@@ -492,7 +591,7 @@ function updatePlayer() {
 
   if (keyIsDown(RIGHT_ARROW)) {
     Player.facing="right";
-    Player.positionXPercent += LRMove;
+    Player.positionXPercent += xMove;
     if (Player.positionXPercent > 100) {
       Player.positionXPercent = 100;
       drawEggSplat();
@@ -500,8 +599,12 @@ function updatePlayer() {
   }
 
   if (GameScreen == GameScreens.Play) {
-    //Player.positionYPercent += 1/Characters[Player.character].stats.mass * acceleration;
-    Player.positionYPercent += massToYAccel(Characters[Player.character].stats.mass);
+    let yAccel = massToYAccel(Characters[Player.character].stats.mass);
+    if (millis() >= Player.woundedUntil) {
+      Player.positionYPercent += yAccel;
+    } else {
+      Player.positionYPercent -= yAccel;
+    }
   }
 }
 
@@ -509,10 +612,16 @@ function updatePlayer() {
 function simulateOtherPlayers() {
 
   for (let i = 0; i < SimulatedPlayers.length; i++) {
+    let otherPlayer = SimulatedPlayers[i];
     if (GameScreen == GameScreens.Play) {
-      SimulatedPlayers[i].positionYPercent += massToYAccel(Characters[SimulatedPlayers[i].character].stats.mass);
+      let yAccel = massToYAccel(Characters[otherPlayer.character].stats.mass);
+      if (millis() >= otherPlayer.woundedUntil) {
+        otherPlayer.positionYPercent += yAccel;
+      } else {
+        otherPlayer.positionYPercent -= yAccel;
+      }
     }
-    drawOtherPlayer(SimulatedPlayers[i]);
+    drawOtherPlayer(otherPlayer);
   }
 }
 
@@ -592,6 +701,10 @@ function drawPlayScreen() {
   drawPlayer(0);
 
   simulateOtherPlayers();
+
+  updateWeapons();
+  collideWeapons();
+  drawWeapons();
 }
 
 function drawFinishAnimationScreen() {
@@ -607,36 +720,59 @@ function drawPlayer(percentOffsetY) {
   push();
 
     imageMode(CENTER);
-    let playerXCoord = percentToX(Player.positionXPercent);
-    if(Player.facing=="right"){
+    let playerXCoord = getPlayerXCoord();
+    let playerYCoord = getPlayerYCoord(percentOffsetY);
+    if (Player.facing == "right") {
       scale(-1,1);
       playerXCoord = -playerXCoord;
     }
-    image(
-      Characters[Player.character].sprite,
-      playerXCoord,
-      percentToY(getPlayerEffectivePositionYPercent() + percentOffsetY)
-      );
+
+    translate(playerXCoord,playerYCoord);
+    let woundedRatio = (Player.woundedUntil - millis()) / 1000;
+    if (woundedRatio > 0) {
+      angleMode(DEGREES);
+      rotate(360 * woundedRatio);
+    }
+    image(Characters[Player.character].sprite, 0, 0);
 
   pop();
+}
+
+function getPlayerXCoord() {
+  return percentToX(Player.positionXPercent);
+}
+function getPlayerYCoord(percentOffsetY) {
+  return percentToY(getPlayerEffectivePositionYPercent() + percentOffsetY)
 }
 
 function drawOtherPlayer(otherPlayer) {
   push();
 
     imageMode(CENTER);
-    let playerXCoord = percentToX(otherPlayer.positionXPercent);
-    if(otherPlayer.facing=="right"){
+    let playerXCoord = getOtherPlayerXCoord(otherPlayer);
+    let playerYCoord = getOtherPlayerYCoord(otherPlayer);
+    if (otherPlayer.facing == "right") {
       scale(-1,1);
       playerXCoord = -playerXCoord;
     }
-    image(
-      Characters[otherPlayer.character].sprite,
-      playerXCoord,
-      percentToY(getAdjustedOtherPlayerPositionYPercent(otherPlayer))
-      );
+
+    translate(playerXCoord,playerYCoord);
+    let woundedRatio = (otherPlayer.woundedUntil - millis()) / 1000;
+    if (woundedRatio > 0) {
+      angleMode(DEGREES);
+      rotate(360 * woundedRatio);
+    }
+    image(Characters[otherPlayer.character].sprite, 0, 0);
     
   pop();
+}
+
+function getOtherPlayerXCoord(otherPlayer) {
+  return percentToX(otherPlayer.positionXPercent);
+}
+
+function getOtherPlayerYCoord(otherPlayer) {
+  return percentToY(getAdjustedOtherPlayerPositionYPercent(otherPlayer));
 }
 
 function drawTitle(title) {
@@ -733,6 +869,213 @@ function drawCountdown() {
 //
 function normal_parabola(t) {
   return (-4 * Math.pow(t,2)) + (4 * t);
+}
+
+function checkSpriteCollision(spriteA, A_x,A_y, spriteB, B_x,B_y) {
+  // sprites A and B must support the properties ".width" and ".height".
+  // _x and _y are the CENTER coordinates for the sprites.
+  // From those inputs, we derive the following corner coordinates:
+  //
+  //     |
+  //     |(0,0)
+  //   --+-------------------------------------------------------->
+  //     |  +---------------------------+                       x+
+  //     |  |(A_x1,A_y1)                |
+  //     |  |            +------------------------------+
+  //     |  |      A     |(B_x1,B_y1)   |               |
+  //     |  |            |              |               |
+  //     |  |            |   (A_x2,A_y2)|       B       |
+  //     |  +------------|--------------+               |
+  //     |               |                   (B_x2,B_y2)|
+  //  y+ |               +------------------------------+
+  //     v
+  //
+  let A_x1 = A_x - spriteA.width/2;
+  let A_y1 = A_y - spriteA.height/2;
+  let A_x2 = A_x + spriteA.width/2;
+  let A_y2 = A_y + spriteA.height/2;
+  let B_x1 = B_x - spriteB.width/2;
+  let B_y1 = B_y - spriteB.height/2;
+  let B_x2 = B_x + spriteB.width/2;
+  let B_y2 = B_y + spriteB.height/2;
+  return checkRectangularCollision(A_x1,A_y1, A_x2,A_y2, B_x1,B_y1, B_x2,B_y2);
+}
+
+function checkRectangularCollision(A_x1,A_y1, A_x2,A_y2, B_x1,B_y1, B_x2,B_y2) {
+  // See https://stackoverflow.com/a/31035335 and https://silentmatt.com/rectangle-intersection/
+  //
+  //     |
+  //     |(0,0)
+  //   --+-------------------------------------------------------->
+  //     |  +---------------------------+                       x+
+  //     |  |(A_x1,A_y1)                |
+  //     |  |            +------------------------------+
+  //     |  |      A     |(B_x1,B_y1)   |               |
+  //     |  |            |              |               |
+  //     |  |            |   (A_x2,A_y2)|       B       |
+  //     |  +------------|--------------+               |
+  //     |               |                   (B_x2,B_y2)|
+  //  y+ |               +------------------------------+
+  //     v
+  //
+  //  Note that A and B can be anywhere in space. For example, A could be way
+  //  over to the right of B and the logic below would still work.
+  //
+  //  Collision is true if all of these conditions are true:
+  return A_x1 < B_x2 && // left edge < other's right edge
+         A_x2 > B_x1 && // right edge > other's left
+         A_y1 < B_y2 && // top < (above) other's bottom
+         A_y2 > B_y1;   // bottom > (below) other's top
+}
+
+function collideWeapons() {
+
+  const playerInvincibleTime = 1000;
+
+  // Check Snake attack collision (spacebar must be held)
+  if (keyIsDown(KEY_CODE_SPACEBAR) && Characters[Player.character].name == "Snake") {
+
+    const playerWoundedTime = 1000;
+
+    let snakeSprite = Characters[Player.character].sprite;
+    let snakeXCoord = getPlayerXCoord();
+    let snakeYCoord = getPlayerYCoord(0);
+    for (let i = 0; i < SimulatedPlayers.length; i++) {
+      let otherPlayer = SimulatedPlayers[i];
+      if (otherPlayer.woundedUntil + playerInvincibleTime > millis()) {
+        continue;
+      } else if (
+        checkSpriteCollision(
+          snakeSprite,
+          snakeXCoord,
+          snakeYCoord,
+          Characters[otherPlayer.character].sprite,
+          getOtherPlayerXCoord(otherPlayer),
+          getOtherPlayerYCoord(otherPlayer))
+      ) {
+        otherPlayer.woundedUntil = millis() + playerWoundedTime;
+        console.log("Snake struck ", Characters[otherPlayer.character].name);
+      }
+    }
+  }
+
+  // Check Hedgehog attack collision
+  if (Characters[Player.character].name == "Hedgehog") {
+
+    const playerWoundedTime = 1500;
+
+    let hhSprite = Characters[Player.character].sprite;
+    let hhXCoord = getPlayerXCoord();
+    let hhYCoord = getPlayerYCoord(0);
+    for (let i = 0; i < SimulatedPlayers.length; i++) {
+      let otherPlayer = SimulatedPlayers[i];
+      if (otherPlayer.woundedUntil + playerInvincibleTime > millis()) {
+        continue;
+      } else if (
+        checkSpriteCollision(
+          hhSprite,
+          hhXCoord,
+          hhYCoord,
+          Characters[otherPlayer.character].sprite,
+          getOtherPlayerXCoord(otherPlayer),
+          getOtherPlayerYCoord(otherPlayer))
+      ) {
+        otherPlayer.woundedUntil = millis() + playerWoundedTime;
+        console.log("Hedgehog struck ", Characters[otherPlayer.character].name);
+      }
+    }
+  }
+
+  for (let i = 0; i < Weapons.length; i++) {
+    let weapon = Weapons[i];
+
+    collidWeaponAndPlayer(weapon, Player, playerInvincibleTime);
+
+    for (let i = 0; i < SimulatedPlayers.length; i++) {
+      let otherPlayer = SimulatedPlayers[i];
+      collidWeaponAndPlayer(weapon, otherPlayer, playerInvincibleTime);
+    }
+  }
+}
+
+function collidWeaponAndPlayer(weapon, player, invincibleTime) {
+
+  if (player.id == weapon.source) {
+    return; // weapons can't hit the player that threw them
+  } else if (player.woundedUntil + invincibleTime > millis()) {
+    return;
+  } else {
+    let weaponSprite = getWeaponSprite(weapon);
+    let weaponXCoord = getWeaponXCoord(weapon);
+    let weaponYCoord = getWeaponYCoord(weapon);
+    if (checkSpriteCollision(
+          weaponSprite,
+          weaponXCoord,
+          weaponYCoord,
+          Characters[player.character].sprite,
+          getOtherPlayerXCoord(player),
+          getOtherPlayerYCoord(player))
+    ) {
+
+      let playerWoundedTime = 500; // todo different effects for each weapon.
+                                   // todo hedgehog invincible to Egg
+
+      player.woundedUntil = millis() + playerWoundedTime;
+      console.log(Symbol.keyFor(weapon.type), " struck ", player.name, "'s ", Characters[player.character].name);
+    }
+  }
+}
+
+function updateWeapons() {
+  for (let i = 0; i < Weapons.length; i++) {
+    let weapon = Weapons[i];
+    weapon.positionYPercent += weapon.yVelocity;
+  }
+}
+
+function drawWeapons() {
+  for (let i = 0; i < Weapons.length; i++) {
+    push();
+
+      let weapon = Weapons[i];
+
+      imageMode(CENTER);
+      let weaponXCoord = getWeaponXCoord(weapon);
+      let weaponYCoord = getWeaponYCoord(weapon);
+
+      translate(weaponXCoord,weaponYCoord);
+      image(getWeaponSprite(weapon), 0, 0);
+    
+    pop();
+  }
+}
+
+function getWeaponXCoord(weapon) {
+  return percentToX(weapon.positionXPercent);
+}
+
+function getWeaponYCoord(weapon) {
+  return percentToY(getAdjustedWeaponPositionYPercent(weapon));
+}
+
+function getAdjustedWeaponPositionYPercent(weapon) {
+
+  let effectiveYPercent = getPlayerEffectivePositionYPercent();
+  let yPercentOffset = Player.positionYPercent - effectiveYPercent;
+  return weapon.positionYPercent - yPercentOffset;
+}
+
+function getWeaponSprite(weapon) {
+
+  if (weapon.type == WeaponTypes.Egg)
+  {
+    return OtherSprites.Egg;
+  }
+
+  if (weapon.type == WeaponTypes.Acorn)
+  {
+    return OtherSprites.Acorn;
+  }
 }
 
 // Hatolie 83 pt - Fall
