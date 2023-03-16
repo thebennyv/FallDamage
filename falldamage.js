@@ -8,10 +8,12 @@ const GameScreens = {
 }
 
 const WeaponTypes = {
-	Egg:    Symbol.for("Egg"),
-	Acorn:  Symbol.for("Acorn"),
-	Spikes: Symbol.for("Spikes"),
-	Fangs:  Symbol.for("Fangs")
+	Egg:       Symbol.for("Egg"),
+	Acorn:     Symbol.for("Acorn"),
+	Spikes:    Symbol.for("Spikes"),
+	Fangs:     Symbol.for("Fangs"),
+  Rock:      Symbol.for("Rock"),
+  SlimeBall: Symbol.for("SlimeBall")
 }
 
 const Characters = [
@@ -19,13 +21,13 @@ const Characters = [
     name: "Squirrel",
     spritePath:"assets/sprites/FD_L_Squirrel.png",
     sprite:null,
-    stats: {mass: 5, speed: 6, armor: 3, weapon: "Acorn"}
+    stats: {mass: 4, speed: 6, armor: 3, weapon: "Acorn"}
   },
   {
     name: "Turtle",
     spritePath:"assets/sprites/FD_L_Turtle.png",
     sprite:null,
-    stats: {mass: 4, speed: 7, armor: 10},
+    stats: {mass: 5, speed: 5, armor: 10, weapon: "Rock"},
    // easterEggSpritePath:"assets/sprites/FD_L_TurtleSpecial",
    // easterEggSprite:null
 
@@ -34,31 +36,31 @@ const Characters = [
     name: "Bird",
     spritePath:"assets/sprites/FD_L_Bird.png",
     sprite:null,
-    stats: {mass: 2, speed: 10, armor: 1}
+    stats: {mass: 3, speed: 7.5, armor: 1, weapon:"Egg"}
   },
   {
     name: "Hedgehog",
     spritePath:"assets/sprites/FD_L_Hedgehog.png",
     sprite:null,
-    stats: {mass: 3, speed: 6, armor: 8, weapon: "Spikes"}
+    stats: {mass: 3.75, speed: 6.5, armor: 8, weapon: "Spikes"}
   },
   {
     name: "Chicken",
     spritePath:"assets/sprites/FD_L_Chicken.png",
     sprite:null,
-    stats: {mass: 7, speed: 3, armor: 7, weapon: "Egg"}
+    stats: {mass: 4, speed: 6, armor: 7, weapon: "Egg"}
   },
   {
     name: "Snake",
     spritePath:"assets/sprites/FD_L_Snake.png",
     sprite:null,
-    stats: {mass: 5, speed: 9, armor: 3, weapon: "Fangs"}
+    stats: {mass: 5, speed: 7.5, armor: 3, weapon: "Fangs"}
   },
   {
     name: "Frog",
     spritePath:"assets/sprites/FD_L_Frog.png",
     sprite:null,
-    stats: {mass: 4, speed: 6, armor: 4}
+    stats: {mass: 4, speed: 6, armor: 4, weapon: "SlimeBall"}
   }
 ];
 
@@ -71,7 +73,8 @@ const OtherSprites = {
   Cloud3a: null,
   EggSplat: null,
   Egg: null,
-  Acorn: null
+  Acorn: null,
+  SlimeBall:null,
 }
 
 let GameScreen = GameScreens.Intro;
@@ -193,7 +196,7 @@ function preload() {
   OtherSprites.EggSplat = loadImage('assets/sprites/FD_EggSplat.png');
   OtherSprites.Egg = loadImage('assets/sprites/FD_Egg.png');
   OtherSprites.Acorn = loadImage('assets/sprites/FD_Acorn.png');
-
+  OtherSprites.SlimeBall = loadImage('assets/sprites/FD_SlimeBall.png');
   // Fonts
   Fonts.Hatolie = loadFont('assets/fonts/Hatolie.ttf');
   Fonts.CalligraphyWet = loadFont('assets/fonts/CalligraphyWet.ttf');
@@ -541,6 +544,24 @@ function weaponActivated() {
       Weapons.push(
         {
           type: WeaponTypes.Egg,
+          source: Player.id,
+          positionXPercent: Player.positionXPercent,
+          positionYPercent: Player.positionYPercent,
+          yVelocity: 5
+        }
+        );
+      Player.weaponCooldownUntil = millis() + 500; // "fire" refresh rate
+    }
+
+  } else if (weaponString == Symbol.keyFor(WeaponTypes.SlimeBall)) {
+
+    console.log("throw SlimeBall");
+    let cooldown = Player.weaponCooldownUntil - millis();
+    console.log("cooldown = ", cooldown);
+    if (cooldown <= 0) {
+      Weapons.push(
+        {
+          type: WeaponTypes.SlimeBall,
           source: Player.id,
           positionXPercent: Player.positionXPercent,
           positionYPercent: Player.positionYPercent,
@@ -1075,6 +1096,10 @@ function getWeaponSprite(weapon) {
   if (weapon.type == WeaponTypes.Acorn)
   {
     return OtherSprites.Acorn;
+  }
+  if (weapon.type == WeaponTypes.SlimeBall)
+  {
+    return OtherSprites.SlimeBall;
   }
 }
 
