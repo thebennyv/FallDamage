@@ -621,7 +621,7 @@ function simulateOtherPlayers() {
         otherPlayer.positionYPercent -= yAccel;
       }
     }
-    drawOtherPlayer(otherPlayer);
+    drawOtherPlayer(otherPlayer, 0, true);
   }
 }
 
@@ -707,13 +707,176 @@ function drawPlayScreen() {
   drawWeapons();
 }
 
+
+const FinishAnimationStates = {
+	FASStart:                Symbol.for("FASStart"),
+	FASAdvanceToGround:      Symbol.for("FASAdvanceToGround"),
+	FASShowGround:           Symbol.for("FASShowGround"),
+  FASLandFirstPlacePlayer: Symbol.for("FASLandFirstPlacePlayer"),
+  FASExplodeLeaves:        Symbol.for("FASExplodeLeaves"),
+  FASLandOtherPlayers:     Symbol.for("FASLandOtherPlayers"),
+  FASDone:                 Symbol.for("FASDone")
+}
+let finishAnimationState = FinishAnimationStates.FASStart;
+let finishAnimationYPercentAdvance = 0;
+let groundHeight = 100;
+let groundYCoord = 0;
+let Craters = [];
+let playersPlaced = [];
+let firstPlacePlayer = null;
+
 function drawFinishAnimationScreen() {
   
   background(SkyColor);
-
+  
   drawClouds();
 
-  drawTitle('Finish Animation'); // todo remove
+  switch (finishAnimationState) {
+    case FinishAnimationStates.FASStart:
+    {
+      //firstPlacePlayer = getFirstPlacePlayer();
+      playersPlaced.push(Player);
+      for (let i = 0; i < SimulatedPlayers.length; i++) {
+        let otherPlayer = SimulatedPlayers[i];
+        playersPlaced.push(otherPlayer);
+      }
+      // in a sort function, 1 means b has precedence (comes first)
+      playersPlaced.sort((a,b) => ((b.positionYPercent > a.positionYPercent) ? 1 : -1));
+      firstPlacePlayer = playersPlaced[0];
+      playersPlaced.shift();
+      
+      finishAnimationState = FinishAnimationStates.FASAdvanceToGround;
+      break;
+    }
+    case FinishAnimationStates.FASAdvanceToGround:
+    {
+      updateCloudsY();
+
+      finishAnimationYPercentAdvance += 5;
+
+      let maxPlayerYCoord = -10000000;
+
+      let tempYCoord = drawPlayer(-finishAnimationYPercentAdvance);
+      if (tempYCoord > maxPlayerYCoord) {
+        maxPlayerYCoord = tempYCoord;
+      }
+      for (let i = 0; i < SimulatedPlayers.length; i++) {
+        let otherPlayer = SimulatedPlayers[i];
+        tempYCoord = drawOtherPlayer(otherPlayer, -finishAnimationYPercentAdvance, true);
+        if (tempYCoord > maxPlayerYCoord) {
+          maxPlayerYCoord = tempYCoord;
+        }
+      }
+
+      if (maxPlayerYCoord < -64) {
+        // First place player has rolled off the top of the screen
+        finishAnimationState = FinishAnimationStates.FASShowGround;
+        firstPlacePlayer.positionXPercent = 50;
+        groundYCoord = CanvasHeight + groundHeight/2+10;
+      }
+      break;
+    }
+    case FinishAnimationStates.FASShowGround:
+    {
+      drawGround();
+      drawLeaves();
+
+      groundYCoord -= 2;
+      if (groundYCoord < CanvasHeight-groundHeight/2+5) {
+        finishAnimationState = FinishAnimationStates.FASLandFirstPlacePlayer;
+        
+        firstPlacePlayer.positionYPercent = -5;
+        for (let i = 0; i < playersPlaced.length; i++) {
+          let player = playersPlaced[i];
+          player.positionYPercent = -5;
+        }
+      }
+
+      break;
+    }
+    case FinishAnimationStates.FASLandFirstPlacePlayer:
+    {
+      drawGround();
+      firstPlacePlayer.positionYPercent += 5;
+      let yCoord = drawOtherPlayer(firstPlacePlayer,0,false);
+      drawLeaves();
+      if (yCoord >= groundYCoord-10) {
+        finishAnimationState = FinishAnimationStates.FASExplodeLeaves;
+      }
+      break;
+    }
+    case FinishAnimationStates.FASExplodeLeaves:
+    {
+      drawGround();
+      drawOtherPlayer(firstPlacePlayer,0,false);
+      drawLeaves();
+      
+      if (playersPlaced.length > 0) {
+        finishAnimationState = FinishAnimationStates.FASLandOtherPlayers;
+      } else {
+        finishAnimationState = FinishAnimationStates.FASDone;
+      }
+      break;
+    }
+    case FinishAnimationStates.FASLandOtherPlayers:
+    {
+      drawGround();
+      drawCraters();
+      drawOtherPlayer(firstPlacePlayer,0,false);
+
+      playersPlaced[0].positionYPercent += 5;
+      let yCoord = drawOtherPlayer(playersPlaced[0],0,false);
+      if (yCoord >= groundYCoord-10) {
+        Craters.push(playersPlaced[0].positionXPercent);
+        playersPlaced.shift();
+        if (playersPlaced.length == 0) {
+          finishAnimationState = FinishAnimationStates.FASDone;
+        }
+      }
+
+
+      break;
+    }
+    case FinishAnimationStates.FASDone:
+    {
+      drawGround();
+      drawCraters();
+      drawOtherPlayer(firstPlacePlayer,0,false);
+      break;
+    }
+    default:
+      break;
+  }
+
+}
+
+function drawGround() {
+
+  push();
+    rectMode(CENTER);
+    fill("green");
+    rect(CanvasWidth/2,groundYCoord, CanvasWidth+10,groundHeight);
+  pop();
+}
+
+function drawCraters() {
+  for (let i = 0; i < Craters.length; i++) {
+    let x = percentToX(Craters[i]);
+    push();
+      rectMode(CENTER);
+      fill("brown");
+      rect(x,groundYCoord-10, 64,32);
+    pop();
+  }
+}
+
+function drawLeaves() {
+
+  push();
+    ellipseMode(CENTER);
+    fill("orange");
+    ellipse(CanvasWidth/2,groundYCoord, CanvasWidth/5,groundHeight/2);
+  pop();
 }
 
 function drawPlayer(percentOffsetY) {
@@ -736,6 +899,8 @@ function drawPlayer(percentOffsetY) {
     image(Characters[Player.character].sprite, 0, 0);
 
   pop();
+
+  return playerYCoord;
 }
 
 function getPlayerXCoord() {
@@ -745,12 +910,24 @@ function getPlayerYCoord(percentOffsetY) {
   return percentToY(getPlayerEffectivePositionYPercent() + percentOffsetY)
 }
 
-function drawOtherPlayer(otherPlayer) {
+function getFirstPlacePlayer() {
+
+  let tempFirstPlace = Player;
+  for (let i = 0; i < SimulatedPlayers.length; i++) {
+    let otherPlayer = SimulatedPlayers[i];
+    if (otherPlayer.positionYPercent > tempFirstPlace.positionYPercent) {
+      tempFirstPlace = otherPlayer;
+    }
+  }
+  return tempFirstPlace;
+}
+
+function drawOtherPlayer(otherPlayer, percentOffsetY, adjusted) {
   push();
 
     imageMode(CENTER);
     let playerXCoord = getOtherPlayerXCoord(otherPlayer);
-    let playerYCoord = getOtherPlayerYCoord(otherPlayer);
+    let playerYCoord = getOtherPlayerYCoord(otherPlayer, percentOffsetY, adjusted);
     if (otherPlayer.facing == "right") {
       scale(-1,1);
       playerXCoord = -playerXCoord;
@@ -765,14 +942,20 @@ function drawOtherPlayer(otherPlayer) {
     image(Characters[otherPlayer.character].sprite, 0, 0);
     
   pop();
+
+  return playerYCoord;
 }
 
 function getOtherPlayerXCoord(otherPlayer) {
   return percentToX(otherPlayer.positionXPercent);
 }
 
-function getOtherPlayerYCoord(otherPlayer) {
-  return percentToY(getAdjustedOtherPlayerPositionYPercent(otherPlayer));
+function getOtherPlayerYCoord(otherPlayer, percentOffsetY, adjusted) {
+  if (adjusted == true) {
+    return percentToY(getAdjustedOtherPlayerPositionYPercent(otherPlayer) + percentOffsetY);
+  } else {
+    return percentToY(otherPlayer.positionYPercent + percentOffsetY);
+  }
 }
 
 function drawTitle(title) {
@@ -951,7 +1134,7 @@ function collideWeapons() {
           snakeYCoord,
           Characters[otherPlayer.character].sprite,
           getOtherPlayerXCoord(otherPlayer),
-          getOtherPlayerYCoord(otherPlayer))
+          getOtherPlayerYCoord(otherPlayer,0,true))
       ) {
         otherPlayer.woundedUntil = millis() + playerWoundedTime;
         console.log("Snake struck ", Characters[otherPlayer.character].name);
@@ -978,7 +1161,7 @@ function collideWeapons() {
           hhYCoord,
           Characters[otherPlayer.character].sprite,
           getOtherPlayerXCoord(otherPlayer),
-          getOtherPlayerYCoord(otherPlayer))
+          getOtherPlayerYCoord(otherPlayer,0,true))
       ) {
         otherPlayer.woundedUntil = millis() + playerWoundedTime;
         console.log("Hedgehog struck ", Characters[otherPlayer.character].name);
@@ -1014,7 +1197,7 @@ function collidWeaponAndPlayer(weapon, player, invincibleTime) {
           weaponYCoord,
           Characters[player.character].sprite,
           getOtherPlayerXCoord(player),
-          getOtherPlayerYCoord(player))
+          getOtherPlayerYCoord(player,0,true))
     ) {
 
       let playerWoundedTime = 500; // todo different effects for each weapon.
