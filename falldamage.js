@@ -36,7 +36,7 @@ const Characters = [
     name: "Bird",
     spritePath:"assets/sprites/FD_L_Bird.png",
     sprite:null,
-    stats: {mass: 3, speed: 7.5, armor: 1, weapon:"Egg"}
+    stats: {mass: 2, speed: 7.5, armor: 1,}
   },
   {
     name: "Hedgehog",
@@ -197,6 +197,7 @@ function preload() {
   OtherSprites.Egg = loadImage('assets/sprites/FD_Egg.png');
   OtherSprites.Acorn = loadImage('assets/sprites/FD_Acorn.png');
   OtherSprites.SlimeBall = loadImage('assets/sprites/FD_SlimeBall.png');
+  OtherSprites.Logo = loadImage('assets/sprites/FallDamage.png');
   // Fonts
   Fonts.Hatolie = loadFont('assets/fonts/Hatolie.ttf');
   Fonts.CalligraphyWet = loadFont('assets/fonts/CalligraphyWet.ttf');
@@ -414,7 +415,7 @@ function drawIntroScreen() {
   updateCloudsX();
   drawClouds();
 
-  drawLogo(70,30);
+  drawLogo(CanvasWidth/2,OtherSprites.Logo.height/2+30);
 }
 
 function drawCharacterSelectScreen() {
@@ -805,18 +806,25 @@ function drawTitle(title) {
   pop();
 }
 
-function drawLogo(x,y) {
+//function drawLogo(x,y) {
+ // push();
+  //  textAlign(LEFT, TOP);
+  //  fill(0);
+  //  strokeWeight(0);
+  //  textSize(83);
+  //  textFont(Fonts.Hatolie);
+  //  text("Fall", x,y+30);
+  //  textSize(123);
+  //  textFont(Fonts.CalligraphyWet);
+  //  text("DAMAGE", x+110,y);
+ //pop();
+//}
+
+function drawLogo(x,y){
   push();
-    textAlign(LEFT, TOP);
-    fill(0);
-    strokeWeight(0);
-    textSize(83);
-    textFont(Fonts.Hatolie);
-    text("Fall", x,y+30);
-    textSize(123);
-    textFont(Fonts.CalligraphyWet);
-    text("DAMAGE", x+110,y);
-  pop();
+  imageMode(CENTER);
+  image(OtherSprites.Logo,x,y);
+pop();
 }
 
 function percentToX(percent) {
