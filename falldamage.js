@@ -606,8 +606,7 @@ function updatePlayer() {
     Player.facing="left";
     Player.positionXPercent -= xMove;
     if (Player.positionXPercent < 0) {
-      Player.positionXPercent = 0;
-      drawEggSplat();
+      Player.positionXPercent = 0; 
     }
   }
 
@@ -616,7 +615,6 @@ function updatePlayer() {
     Player.positionXPercent += xMove;
     if (Player.positionXPercent > 100) {
       Player.positionXPercent = 100;
-      drawEggSplat();
     }
   }
 
