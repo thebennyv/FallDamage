@@ -1,4 +1,17 @@
 
+// todo
+//   tree branch
+//   infinite tree trunk
+//   multiplayer
+//   leaves explosion
+//   crater sprite
+//   sound effects
+//   balance
+//   motion lines
+//   weapons start below player?
+//   snake hitbox 1/2 height
+//   mobile devices
+
 const GameScreens = {
 	Intro:           Symbol.for("Intro"),
 	CharacterSelect: Symbol.for("CharacterSelect"),
@@ -526,7 +539,7 @@ function weaponActivated() {
           source: Player.id,
           positionXPercent: Player.positionXPercent,
           positionYPercent: Player.positionYPercent,
-          yVelocity: 7
+          yVelocity: 2
         }
         );
       Player.weaponCooldownUntil = millis() + 700; // "fire" refresh rate
@@ -544,7 +557,7 @@ function weaponActivated() {
           source: Player.id,
           positionXPercent: Player.positionXPercent,
           positionYPercent: Player.positionYPercent,
-          yVelocity: 5
+          yVelocity: 1
         }
         );
       Player.weaponCooldownUntil = millis() + 500; // "fire" refresh rate
@@ -585,7 +598,7 @@ function updatePlayer() {
     Player.positionXPercent -= xMove;
     if (Player.positionXPercent < 0) {
       Player.positionXPercent = 0;
-      drawEggSplat();
+      //drawEggSplat();
     }
   }
 
@@ -594,7 +607,7 @@ function updatePlayer() {
     Player.positionXPercent += xMove;
     if (Player.positionXPercent > 100) {
       Player.positionXPercent = 100;
-      drawEggSplat();
+      //drawEggSplat();
     }
   }
 
@@ -633,8 +646,9 @@ function getAdjustedOtherPlayerPositionYPercent(otherPlayer) {
 }
 
 function getPlayerEffectivePositionYPercent() {
-  if (Player.positionYPercent > 80) {
-    return 80;
+  let screenLockPercent = 50;
+  if (Player.positionYPercent > screenLockPercent) {
+    return screenLockPercent;
   } else {
     return Player.positionYPercent;
   }
@@ -842,6 +856,13 @@ function drawFinishAnimationScreen() {
       drawGround();
       drawCraters();
       drawOtherPlayer(firstPlacePlayer,0,false);
+      push();
+        textAlign(CENTER, TOP);
+        textSize(16);
+        textStyle(BOLD);
+        let message = firstPlacePlayer.name + " wins!";
+        text(message, CanvasWidth/2, CanvasHeight/2);
+      pop();
       break;
     }
     default:
