@@ -594,7 +594,6 @@ function weaponActivated() {
 }
 
 function updatePlayer() {
-
   let xMove = massToXAccel(Characters[Player.character].stats.mass);
   let xBoostFactor = 10;
   let xBoost = xBoostFactor * ((Player.xBoostUntil - millis()) / 1000);
@@ -1049,6 +1048,7 @@ function collidWeaponAndPlayer(weapon, player, invincibleTime) {
 
       player.woundedUntil = millis() + playerWoundedTime;
       console.log(Symbol.keyFor(weapon.type), " struck ", player.name, "'s ", Characters[player.character].name);
+      drawEggSplat()
     }
   }
 }
