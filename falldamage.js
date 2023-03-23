@@ -3,7 +3,7 @@
 //   tree branch
 //   infinite tree trunk
 //   multiplayer
-//   leaves explosion
+//   leaves explosion WIP
 //   crater sprite    COMPLETED
 //   sound effects
 //   balance
@@ -93,6 +93,7 @@ const OtherSprites = {
   LeafGreen:null,
   LeafYellow:null,
   LeafBrown: null,
+  ProjectileButton: null,
 }
 
 let GameScreen = GameScreens.Intro;
@@ -228,6 +229,7 @@ function preload() {
   OtherSprites.EndFrame3 = loadImage('assets/sprites/FD_LeafExplosionFrame3.png')
   OtherSprites.EndFrame4 = loadImage('assets/sprites/FD_LeafExplosionFrame4.png')
   OtherSprites.EndFrame5 = loadImage('assets/sprites/FD_LeafExplosionFrame5.png')
+  OtherSprites.ProjectileButton = loadImage('assets/Sprites/FD_ProjectileButton.png')
   // Fonts
   Fonts.Hatolie = loadFont('assets/fonts/Hatolie.ttf');
   Fonts.CalligraphyWet = loadFont('assets/fonts/CalligraphyWet.ttf');
@@ -542,13 +544,20 @@ function mouseClicked() {
   }
 }
 
+
+
+
+
 function keyPressed() {
-  if (GameScreen == GameScreens.Play) {
-    if (key == ' ') { // Space Bar
-      weaponActivated();
-    }
+if (GameScreen == GameScreens.Play) {
+  if (key == ' ') { // Space Bar
+    weaponActivated();
   }
 }
+
+
+}
+
 
 function weaponActivated() {
 
@@ -762,6 +771,8 @@ function drawPlayScreen() {
   updateWeapons();
   collideWeapons();
   drawWeapons();
+  drawProjectileButton();
+  
 }
 
 function drawLeavesExplosion(){
@@ -1302,7 +1313,7 @@ function collidWeaponAndPlayer(weapon, player, invincibleTime) {
 
       player.woundedUntil = millis() + playerWoundedTime;
       console.log(Symbol.keyFor(weapon.type), " struck ", player.name, "'s ", Characters[player.character].name);
-      drawEggSplat()
+      //drawEggSplat()
     }
   }
 }
@@ -1313,6 +1324,11 @@ function updateWeapons() {
     weapon.positionYPercent += weapon.yVelocity;
   }
 }
+  function touchEnded(){
+    weaponActivated();
+  }
+
+
 
 function drawWeapons() {
   for (let i = 0; i < Weapons.length; i++) {
@@ -1362,6 +1378,17 @@ function getWeaponSprite(weapon) {
     return OtherSprites.SlimeBall;
   }
 }
+function drawProjectileButton(){
+push();
+  imageMode(CENTER);
+  image(OtherSprites.ProjectileButton,40,480);
+pop();
+
+}
+
+
+
+
 
 // Hatolie 83 pt - Fall
 // CalligraphyWet 123 pt - DAMAGE
