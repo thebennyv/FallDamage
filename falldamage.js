@@ -629,11 +629,6 @@ function weaponActivated() {
   }
 }
 
-function touchMove() {
-    player.positionXPercent -= xMove;
-  } 
-
-
 function updatePlayer() {
   let xMove = massToXAccel(Characters[Player.character].stats.mass);
   let xBoostFactor = 10;
