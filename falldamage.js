@@ -4,7 +4,7 @@
 //   infinite tree trunk
 //   multiplayer
 //   leaves explosion
-//   crater sprite
+//   crater sprite    COMPLETED
 //   sound effects
 //   balance
 //   motion lines
@@ -25,7 +25,6 @@ const WeaponTypes = {
 	Acorn:     Symbol.for("Acorn"),
 	Spikes:    Symbol.for("Spikes"),
 	Fangs:     Symbol.for("Fangs"),
-  Rock:      Symbol.for("Rock"),
   SlimeBall: Symbol.for("SlimeBall")
 }
 
@@ -40,7 +39,7 @@ const Characters = [
     name: "Turtle",
     spritePath:"assets/sprites/FD_L_Turtle.png",
     sprite:null,
-    stats: {mass: 5, speed: 5, armor: 10, weapon: "Rock"},
+    stats: {mass: 5, speed: 5, armor: 10},
    // easterEggSpritePath:"assets/sprites/FD_L_TurtleSpecial",
    // easterEggSprite:null
 
@@ -88,6 +87,12 @@ const OtherSprites = {
   Egg: null,
   Acorn: null,
   SlimeBall:null,
+  Crater: null,
+  Ground: null,
+  LeafRed:null,
+  LeafGreen:null,
+  LeafYellow:null,
+  LeafBrown: null,
 }
 
 let GameScreen = GameScreens.Intro;
@@ -157,7 +162,7 @@ let SimulatedPlayers = [
   {
     id: uuidv4(),
     name: "Jarvis",
-    character: 2, // 0, 1, 2, ... index from Characters array
+    character: 0, // 0, 1, 2, ... index from Characters array
     positionXPercent: 10,
     positionYPercent: 15,
     facing:"left",
@@ -211,6 +216,18 @@ function preload() {
   OtherSprites.Acorn = loadImage('assets/sprites/FD_Acorn.png');
   OtherSprites.SlimeBall = loadImage('assets/sprites/FD_SlimeBall.png');
   OtherSprites.Logo = loadImage('assets/sprites/FallDamage.png');
+  OtherSprites.Crater = loadImage('assets/sprites/FD_Crater.png');
+  OtherSprites.Ground = loadImage('assets/sprites/FD_GameEndFloor.png');
+  OtherSprites.LeafYellow = loadImage('assets/sprites/FD_LeafYellow.png');
+  OtherSprites.LeafRed = loadImage('assets/sprites/FD_LeafRed.png');
+  OtherSprites.LeafGreen = loadImage('assets/sprites/FD_LeafGreen.png');
+  OtherSprites.LeafBrown = loadImage('assets/sprites/FD_LeafBrown.png');
+  OtherSprites.LeafPile = loadImage('assets/sprites/FD_LeafPile.png');
+  OtherSprites.EndFrame1 = loadImage('assets/sprites/FD_LeafExplosionFrame1.png')
+  OtherSprites.EndFrame2 = loadImage('assets/sprites/FD_LeafExplosionFrame2.png')
+  OtherSprites.EndFrame3 = loadImage('assets/sprites/FD_LeafExplosionFrame3.png')
+  OtherSprites.EndFrame4 = loadImage('assets/sprites/FD_LeafExplosionFrame4.png')
+  OtherSprites.EndFrame5 = loadImage('assets/sprites/FD_LeafExplosionFrame5.png')
   // Fonts
   Fonts.Hatolie = loadFont('assets/fonts/Hatolie.ttf');
   Fonts.CalligraphyWet = loadFont('assets/fonts/CalligraphyWet.ttf');
@@ -237,7 +254,13 @@ function setup() {
   OtherSprites.Cloud1a.resize(500,0);
   OtherSprites.Cloud2a.resize(500,0);
   OtherSprites.Cloud3a.resize(500,0);
-  
+  OtherSprites.Crater.resize(50,0);
+  OtherSprites.LeafBrown.resize(32,0);
+  OtherSprites.LeafRed.resize(32,0);
+  OtherSprites.LeafGreen.resize(32,0);
+  OtherSprites.LeafYellow.resize(32,0);
+  OtherSprites.LeafPile.resize(128,0);
+
   CanvasWidth = Math.min(CanvasWidth, displayWidth);
   CanvasHeight = Math.min(CanvasHeight, displayHeight);
   Canvas = createCanvas(CanvasWidth, CanvasHeight);
@@ -606,6 +629,11 @@ function weaponActivated() {
   }
 }
 
+function touchMove() {
+    player.positionXPercent -= xMove;
+  } 
+
+
 function updatePlayer() {
   let xMove = massToXAccel(Characters[Player.character].stats.mass);
   let xBoostFactor = 10;
@@ -619,7 +647,7 @@ function updatePlayer() {
     Player.positionXPercent -= xMove;
     if (Player.positionXPercent < 0) {
       Player.positionXPercent = 0;
-    }
+    } 
   }
 
   if (keyIsDown(RIGHT_ARROW)) {
@@ -629,6 +657,7 @@ function updatePlayer() {
       Player.positionXPercent = 100;
     }
   }
+
 
   if (GameScreen == GameScreens.Play) {
     let yAccel = massToYAccel(Characters[Player.character].stats.mass);
@@ -740,6 +769,16 @@ function drawPlayScreen() {
   drawWeapons();
 }
 
+function drawLeavesExplosion(){
+  push();
+        imageMode(CENTER);
+        image(OtherSprites.EndFrame1,CanvasWidth/2,groundYCoord);
+        image(OtherSprites.EndFrame2,CanvasWidth/2,groundYCoord);
+        image(OtherSprites.EndFrame3,CanvasWidth/2,groundYCoord);
+        image(OtherSprites.EndFrame4,CanvasWidth/2,groundYCoord);
+        image(OtherSprites.EndFrame5,CanvasWidth/2,groundYCoord);
+      pop();
+}
 
 const FinishAnimationStates = {
 	FASStart:                Symbol.for("FASStart"),
@@ -763,7 +802,7 @@ function drawFinishAnimationScreen() {
   background(SkyColor);
   
   drawClouds();
-
+    
   switch (finishAnimationState) {
     case FinishAnimationStates.FASStart:
     {
@@ -856,6 +895,7 @@ function drawFinishAnimationScreen() {
       drawGround();
       drawCraters();
       drawOtherPlayer(firstPlacePlayer,0,false);
+      drawLeavesExplosion();
 
       playersPlaced[0].positionYPercent += 5;
       let yCoord = drawOtherPlayer(playersPlaced[0],0,false);
@@ -893,9 +933,8 @@ function drawFinishAnimationScreen() {
 function drawGround() {
 
   push();
-    rectMode(CENTER);
-    fill("green");
-    rect(CanvasWidth/2,groundYCoord, CanvasWidth+10,groundHeight);
+    imageMode(CENTER);
+    image(OtherSprites.Ground,CanvasWidth/2,groundYCoord);
   pop();
 }
 
@@ -903,20 +942,36 @@ function drawCraters() {
   for (let i = 0; i < Craters.length; i++) {
     let x = percentToX(Craters[i]);
     push();
-      rectMode(CENTER);
-      fill("brown");
-      rect(x,groundYCoord-10, 64,32);
+      imageMode(CENTER);
+      image(OtherSprites.Crater,x,groundYCoord-10)  ;
     pop();
   }
 }
 
-function drawLeaves() {
+function drawLeavesB() {
 
   push();
     ellipseMode(CENTER);
     fill("orange");
     ellipse(CanvasWidth/2,groundYCoord, CanvasWidth/5,groundHeight/2);
   pop();
+}
+
+function drawLeaves(){
+
+  push();
+  imageMode(CENTER);
+    image(OtherSprites.LeafPile,CanvasWidth/2,groundYCoord - 30)
+   // image(OtherSprites.LeafBrown,CanvasWidth/2,groundYCoord)
+  //  image(OtherSprites.LeafYellow,CanvasWidth/2 + 15,groundYCoord)
+   // image(OtherSprites.LeafGreen,CanvasWidth/2 -20,groundYCoord)
+    //image(OtherSprites.LeafRed,CanvasWidth/2,groundYCoord +32)
+   // image(OtherSprites.LeafGreen,CanvasWidth/2,groundYCoord -15)
+    //image(OtherSprites.LeafRed,CanvasWidth/2,groundYCoord +30)
+    //image(OtherSprites.LeafBrown,CanvasWidth/2 + 25,groundYCoord +0)
+    //image(OtherSprites.LeafYellow,CanvasWidth/2 -30,groundYCoord +20)
+  pop();
+
 }
 
 function drawPlayer(percentOffsetY) {
