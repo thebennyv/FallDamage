@@ -1,5 +1,6 @@
 https://supabase.com/blog/supabase-realtime-multiplayer-general-availability
 https://supabase.com/docs/guides/realtime/quickstart
+https://onebite.dev/play-with-supabase-database-in-website-with-javascript/
 
 
 https://www.fesliyanstudios.com/royalty-free-music/downloads-c/8-bit-music/6
