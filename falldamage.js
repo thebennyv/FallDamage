@@ -404,24 +404,12 @@ function connectMultiplayer(nextGameScreen) {
     for (var player in waitingRoomChannel.presenceState()) {
       rooms.push(waitingRoomChannel.presenceState()[player][0]);
     }
-    //rooms = Object.entries(w).map(e => e[1])[0];
-    //let state = waitingRoomChannel.presenceState();
-    //rooms = Object.values(state);
     console.log("rooms @ ", Date.now(), rooms);
-    // for (let i = 0; (i < rooms.length) && !(myRoom === null); i++) {
-    //   let room = rooms[i];
-    //   // Update our room from the shared state unless we are the room owner,
-    //   // in which case we already have the latest copy.
-    //   if ((room.id === myRoom.id) && !(room.id === Player.id)) {
-    //     myRoom = room;
-    //     break;
-    //   }
-    // }
   })
   // Subscribe to the waiting room and set up a one-shot timer to join a room.
   waitingRoomChannel.subscribe(async (status) => {
     if (status === 'SUBSCRIBED') {
-      // Wait 1 second to see what rooms are available. This will give the "on
+      // Wait a bit to see what rooms are available. This will give the "on
       // presence event sync" callback above a chance to receive an initial list
       // of rooms from the server.
       setTimeout(() => {
@@ -444,7 +432,7 @@ function connectMultiplayer(nextGameScreen) {
             {
               id: Player.id, // We own the room.
               players: [Player.id], // We are the only player initially.
-              countdown: Date.now() + 30*1000 // The game will start in 30 seconds.
+              countdown: Date.now() + 5*1000 // The game will start in 30 seconds.
             };
           waitingRoomChannel.track(myRoom);
           // // Keep the room updated
@@ -474,17 +462,13 @@ function connectMultiplayer(nextGameScreen) {
           for (var player in myRoomChannel.presenceState()) {
             Players.push(myRoomChannel.presenceState()[player][0]);
           }
-          //Players = myRoomChannel.presenceState();
-          //Players = Object.entries(myRoomChannel.presenceState()).map(e => e[1])[0];
-          //let state = myRoomChannel.presenceState();
-          //Players = Object.values(state);
           console.log("players @ ", Date.now(), Players);
         });
         myRoomChannel.on('broadcast', { event: 'wounded' }, (msg) => {
           // payload looks like this: { idWounded, idWoundedBy, woundedUntil }
           if (msg.payload.idWounded == Player.id) {
             Player.woundedUntil = msg.payload.woundedUntil;
-            console.log("You were wounded by ", msg.payload.idWoundedBy, ' @ ', Date.now(), ' until ', Player.woundedUntil);
+            console.log("You were wounded by ", msg.payload.idWoundedBy, " at ", Date.now(), " until ", Player.woundedUntil);
           }
         });
         // Subscribe to the room and set up a repeating timer to push our own
@@ -892,10 +876,21 @@ function drawOtherPlayers() {
   for (let i = 0; i < Players.length; i++) {
     let player = Players[i];
     if (!(player.id == Player.id)) {
+
+      if (GameScreen == GameScreens.Play) {
+        let yAccel = massToYAccel(Characters[player.character].stats.mass);
+        if (Date.now() >= player.woundedUntil) {
+          player.positionYPercent += yAccel;
+        } else {
+          player.positionYPercent -= yAccel;
+        }
+      }
+
       drawOtherPlayer(player, 0, true);
     }
   }
 }
+
 
 function getAdjustedOtherPlayerPositionYPercent(otherPlayer) {
 
@@ -976,8 +971,11 @@ function drawPlayScreen() {
   drawPlayer(0);
 
   updateOwnWeapons();
+  updateOtherWeapons();
   collideOwnWeapons();
-  drawAllWeapons();
+  drawOwnWeapons();
+  drawOtherWeapons();
+  
   drawProjectileButton();
 }
 
@@ -1525,6 +1523,7 @@ function collideWeaponAndPlayer(weapon, player, invincibleTime) {
 }
 
 function updateOwnWeapons() {
+
   for (let i = 0; i < Player.weapons.length; i++) {
     let weapon = Player.weapons[i];
     if (weapon.expiresAt <= Date.now()) {
@@ -1540,22 +1539,55 @@ function updateOwnWeapons() {
 
 
 
-function drawAllWeapons() {
+function updateOtherWeapons() {
+
   for (let pi = 0; pi < Players.length; pi++) {
     let player = Players[pi];
-    for (let wi = 0; wi < player.weapons.length; wi++) {
-      push();
-
+    if (player.id != Player.id) {
+      for (let wi = 0; wi < player.weapons.length; wi++) {
         let weapon = player.weapons[wi];
+        weapon.positionYPercent += weapon.yVelocity;
+      }
+    }
+  }
+}
 
-        imageMode(CENTER);
-        let weaponXCoord = getWeaponXCoord(weapon);
-        let weaponYCoord = getWeaponYCoord(weapon);
+function drawOwnWeapons() {
 
-        translate(weaponXCoord,weaponYCoord);
-        image(getWeaponSprite(weapon), 0, 0);
-      
-      pop();
+  for (let i = 0; i < Player.weapons.length; i++) {
+    push();
+
+      let weapon = Player.weapons[i];
+
+      imageMode(CENTER);
+      let weaponXCoord = getWeaponXCoord(weapon);
+      let weaponYCoord = getWeaponYCoord(weapon);
+
+      translate(weaponXCoord,weaponYCoord);
+      image(getWeaponSprite(weapon), 0, 0);
+    
+    pop();
+  }
+}
+
+function drawOtherWeapons() {
+  for (let pi = 0; pi < Players.length; pi++) {
+    let player = Players[pi];
+    if (player.id != Player.id) {
+      for (let wi = 0; wi < player.weapons.length; wi++) {
+        push();
+
+          let weapon = player.weapons[wi];
+
+          imageMode(CENTER);
+          let weaponXCoord = getWeaponXCoord(weapon);
+          let weaponYCoord = getWeaponYCoord(weapon);
+
+          translate(weaponXCoord,weaponYCoord);
+          image(getWeaponSprite(weapon), 0, 0);
+        
+        pop();
+      }
     }
   }
 }
