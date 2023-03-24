@@ -229,7 +229,7 @@ function preload() {
   OtherSprites.EndFrame3 = loadImage('assets/sprites/FD_LeafExplosionFrame3.png')
   OtherSprites.EndFrame4 = loadImage('assets/sprites/FD_LeafExplosionFrame4.png')
   OtherSprites.EndFrame5 = loadImage('assets/sprites/FD_LeafExplosionFrame5.png')
-  OtherSprites.ProjectileButton = loadImage('assets/Sprites/FD_ProjectileButton.png')
+  OtherSprites.ProjectileButton = loadImage('assets/sprites/FD_ProjectileButton.png')
   // Fonts
   Fonts.Hatolie = loadFont('assets/fonts/Hatolie.ttf');
   Fonts.CalligraphyWet = loadFont('assets/fonts/CalligraphyWet.ttf');
