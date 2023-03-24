@@ -559,6 +559,9 @@ function transitionToFinishAnimationScreen() {
   SoundEffects.Wind.sound.stop();
 
   Music.FinishAnimation.sound.play();
+
+  waitingRoomChannel.unsubscribe();
+  myRoomChannel.unsubscribe();
 }
 
 function draw() {
