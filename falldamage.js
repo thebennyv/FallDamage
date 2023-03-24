@@ -179,7 +179,7 @@ const SUPABASE_URL = 'https://nnayiddgjspiqqpxbzlr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uYXlpZGRnanNwaXFxcHhiemxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzY2NTIwODQsImV4cCI6MTk5MjIyODA4NH0.sb8ApuZezC0bNZHmfXr_mWp2MGU3-aoRS3hg4Py5qps';
 let waitingRoomClient; // supabase client for tracking the waiting room
 let myRoomClient; // supabase client for tracking our game room
-let multiplayerRate = 1 * 2; // events per second -- but this seems to be operating at half the desired rate????
+let multiplayerRate = 5 * 2; // events per second -- but this seems to be operating at half the desired rate????
 let waitingRoomChannel = null;
 let myRoomChannel = null;
 let rooms = [];
