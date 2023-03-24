@@ -125,6 +125,8 @@ let CanvasHeight = 512;
 let CloudOffsetX = -50;
 let CloudOffsetY = 0;
 
+let characterSelectScreenDrawConnectingText = false;
+
 const Fonts = {
   Hatolie: null,
   CalligraphyWet: null
@@ -179,7 +181,7 @@ const SUPABASE_URL = 'https://nnayiddgjspiqqpxbzlr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uYXlpZGRnanNwaXFxcHhiemxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzY2NTIwODQsImV4cCI6MTk5MjIyODA4NH0.sb8ApuZezC0bNZHmfXr_mWp2MGU3-aoRS3hg4Py5qps';
 let waitingRoomClient; // supabase client for tracking the waiting room
 let myRoomClient; // supabase client for tracking our game room
-let multiplayerRate = 5 * 2; // events per second -- but this seems to be operating at half the desired rate????
+let multiplayerRate = 15 * 2; // events per second -- but this seems to be operating at half the desired rate????
 let waitingRoomChannel = null;
 let myRoomChannel = null;
 let rooms = [];
@@ -368,12 +370,85 @@ function connectMultiplayer(nextGameScreen) {
   // The waiting rooms state is a list of rooms. We will select one or add one
   // of our own.
   waitingRoomChannel.on('presence', { event: 'sync' }, () => {
-    //rooms = waitingRoomChannel.presenceState();
+    let completeLogin = (rooms.length == 0);
+
     rooms = [];
     for (var player in waitingRoomChannel.presenceState()) {
       rooms.push(waitingRoomChannel.presenceState()[player][0]);
     }
     console.log("rooms @ ", Date.now(), rooms);
+
+    if (completeLogin) {
+
+      // See if a room is available.
+      for (let i = 0; (i < rooms.length) && (myRoom === null); i++) {
+        let room = rooms[i];
+        // Max 5 palyers and at least 5 seconds before the game starts.
+        console.log("room numplayers = ", room.players.length, ", t minus ", (room.countdown - Date.now()));
+        if ((room.players.length < 5) && ((room.countdown - Date.now()) > 5000)) {
+          myRoom = room;
+        }
+      }
+
+      // If no rooms were available, then create one.
+      if (myRoom === null) {
+        myRoom =
+          {
+            id: Player.id, // We own the room.
+            players: [Player.id], // We are the only player initially.
+            countdown: Date.now() + 30*1000 // The game will start in 30 seconds.
+          };
+        waitingRoomChannel.track(myRoom);
+        // // Keep the room updated
+        // setInterval(() => {
+        //   waitingRoomChannel.track(myRoom);
+        // }, 1000 / multiplayerRate);
+      }
+
+      // Save bandwidth.
+      //waitingRoomChannel.unsubscribe();
+
+      // Set up the channel for whatever room we selected.
+      myRoomChannel = myRoomClient.channel(
+        myRoom.id,
+        {
+          config: {
+            presence: {
+              key: Player.id,
+            },
+          },
+        }
+      );
+      // The room's state is a list of players in the room, each of which will
+      // be continually updated.
+      myRoomChannel.on('presence', { event: 'sync' }, () => {
+        Players = [];
+        for (var player in myRoomChannel.presenceState()) {
+          Players.push(myRoomChannel.presenceState()[player][0]);
+        }
+        console.log("players @ ", Date.now(), Players);
+      });
+      myRoomChannel.on('broadcast', { event: 'wounded' }, (msg) => {
+        // payload looks like this: { idWounded, idWoundedBy, woundedUntil }
+        if (msg.payload.idWounded == Player.id) {
+          Player.woundedUntil = msg.payload.woundedUntil;
+          console.log("You were wounded by ", msg.payload.idWoundedBy, " at ", Date.now(), " until ", Player.woundedUntil);
+        }
+      });
+      // Subscribe to the room and set up a repeating timer to push our own
+      // player to the room's player list. When we are connected, we advance
+      // to the specified next game screen.
+      myRoomChannel.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+
+          GameScreen = nextGameScreen;
+
+          setInterval(() => {
+            myRoomChannel.track(Player)
+            }, 1000 / multiplayerRate)
+        }
+      })
+    }
   })
   // Subscribe to the waiting room and set up a one-shot timer to join a room.
   waitingRoomChannel.subscribe(async (status) => {
@@ -385,74 +460,6 @@ function connectMultiplayer(nextGameScreen) {
         // The timeout is set below. When it expires, this anonymous function
         // will be executed.
 
-        // See if a room is available.
-        for (let i = 0; (i < rooms.length) && (myRoom === null); i++) {
-          let room = rooms[i];
-          // Max 5 palyers and at least 5 seconds before the game starts.
-          console.log("room numplayers = ", room.players.length, ", t minus ", (room.countdown - Date.now()));
-          if ((room.players.length < 5) && ((room.countdown - Date.now()) > 5000)) {
-            myRoom = room;
-          }
-        }
-
-        // If no rooms were available, then create one.
-        if (myRoom === null) {
-          myRoom =
-            {
-              id: Player.id, // We own the room.
-              players: [Player.id], // We are the only player initially.
-              countdown: Date.now() + 5*1000 // The game will start in 30 seconds.
-            };
-          waitingRoomChannel.track(myRoom);
-          // // Keep the room updated
-          // setInterval(() => {
-          //   waitingRoomChannel.track(myRoom);
-          // }, 1000 / multiplayerRate);
-        }
-
-        // Save bandwidth.
-        //waitingRoomChannel.unsubscribe();
-
-        // Set up the channel for whatever room we selected.
-        myRoomChannel = myRoomClient.channel(
-          myRoom.id,
-          {
-            config: {
-              presence: {
-                key: Player.id,
-              },
-            },
-          }
-        );
-        // The room's state is a list of players in the room, each of which will
-        // be continually updated.
-        myRoomChannel.on('presence', { event: 'sync' }, () => {
-          Players = [];
-          for (var player in myRoomChannel.presenceState()) {
-            Players.push(myRoomChannel.presenceState()[player][0]);
-          }
-          console.log("players @ ", Date.now(), Players);
-        });
-        myRoomChannel.on('broadcast', { event: 'wounded' }, (msg) => {
-          // payload looks like this: { idWounded, idWoundedBy, woundedUntil }
-          if (msg.payload.idWounded == Player.id) {
-            Player.woundedUntil = msg.payload.woundedUntil;
-            console.log("You were wounded by ", msg.payload.idWoundedBy, " at ", Date.now(), " until ", Player.woundedUntil);
-          }
-        });
-        // Subscribe to the room and set up a repeating timer to push our own
-        // player to the room's player list. When we are connected, we advance
-        // to the specified next game screen.
-        myRoomChannel.subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-
-            GameScreen = nextGameScreen;
-
-            setInterval(() => {
-              myRoomChannel.track(Player)
-              }, 1000 / multiplayerRate)
-          }
-        })
 
       }, 3000); // 1000 milliseconds = 1 second
     }
@@ -513,6 +520,8 @@ function transitionToWaitingForPlayersScreen() {
   connectMultiplayer(GameScreens.WaitingForPlayers);
 
   removeElements(); // Removes all p5 elements (so, the UI)
+
+  characterSelectScreenDrawConnectingText = true;
 }
 
 function transitionToPlayScreen() {
@@ -684,6 +693,16 @@ function drawCharacterSelectScreen() {
   // Cursor selection index indicators for debug
   //text(xIndex, 10,10);
   //text(yIndex, 30,10);
+
+  if (characterSelectScreenDrawConnectingText == true) {
+    push();
+      textAlign(CENTER, TOP);
+      textSize(32);
+      textStyle(BOLD);
+      let message = "Connecting...";
+      text(message, CanvasWidth/2, CanvasHeight*3/5);
+    pop();
+  }
  
 }
 
