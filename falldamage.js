@@ -131,8 +131,6 @@ let Canvas;
 let CanvasWidth = 512;
 let CanvasHeight = 512;
 
-let CountDownTimestamp = 0;
-
 let CloudOffsetX = -50;
 let CloudOffsetY = 0;
 
@@ -141,37 +139,35 @@ const Fonts = {
   CalligraphyWet: null
 }
 
-let SimulatedPlayers = [
-  {
-    id: uuidv4(),
-    name: "Bob",
-    character: 0, // 0, 1, 2, ... index from Characters array
-    positionXPercent: 70,
-    positionYPercent: 15,
-    facing:"left",
-    woundedUntil:0
-  },
-  {
-    id: uuidv4(),
-    name: "Sue",
-    character: 1, // 0, 1, 2, ... index from Characters array
-    positionXPercent: 30,
-    positionYPercent: 15,
-    facing:"left",
-    woundedUntil:0
-  },
-  {
-    id: uuidv4(),
-    name: "Jarvis",
-    character: 0, // 0, 1, 2, ... index from Characters array
-    positionXPercent: 10,
-    positionYPercent: 15,
-    facing:"left",
-    woundedUntil:0
-  }
-]
-
-let Weapons = []
+// let SimulatedPlayers = [
+//   {
+//     id: uuidv4(),
+//     name: "Bob",
+//     character: 0, // 0, 1, 2, ... index from Characters array
+//     positionXPercent: 70,
+//     positionYPercent: 15,
+//     facing:"left",
+//     woundedUntil:0
+//   },
+//   {
+//     id: uuidv4(),
+//     name: "Sue",
+//     character: 1, // 0, 1, 2, ... index from Characters array
+//     positionXPercent: 30,
+//     positionYPercent: 15,
+//     facing:"left",
+//     woundedUntil:0
+//   },
+//   {
+//     id: uuidv4(),
+//     name: "Jarvis",
+//     character: 2, // 0, 1, 2, ... index from Characters array
+//     positionXPercent: 10,
+//     positionYPercent: 15,
+//     facing:"left",
+//     woundedUntil:0
+//   }
+// ]
 
 let Player = {
   id: uuidv4(),
@@ -182,9 +178,22 @@ let Player = {
   facing:"left",
   woundedUntil:0,
   xBoostUntil:0,
-  weaponCooldownUntil:0
+  weaponCooldownUntil:0,
+  weapons: []
  // easterEggSpriteSelected: false 
 };
+
+// Multiplayer is handled by supabase
+const SUPABASE_URL = 'https://nnayiddgjspiqqpxbzlr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uYXlpZGRnanNwaXFxcHhiemxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzY2NTIwODQsImV4cCI6MTk5MjIyODA4NH0.sb8ApuZezC0bNZHmfXr_mWp2MGU3-aoRS3hg4Py5qps';
+let waitingRoomClient; // supabase client for tracking the waiting room
+let myRoomClient; // supabase client for tracking our game room
+let multiplayerRate = 5 * 2; // events per second -- but this seems to be operating at half the desired rate????
+let waitingRoomChannel = null;
+let myRoomChannel = null;
+let rooms = [];
+let Players = [];
+let myRoom = null;
 
 const KEY_CODE_SPACEBAR = 32;
 const KEY_CODE_LEFT_ARROW = 37;
@@ -197,6 +206,8 @@ function uuidv4() {
 }
 
 function preload() {
+  
+
   // Load assets...
 
   // Sprites
@@ -316,6 +327,7 @@ function input_CharacterSelectScreen_NameInput() {
 
 function transitionToCharacterSelectScreen() {
 
+
   GameScreen = GameScreens.CharacterSelect;
   //select("UI").remove(); not sure if this would remove its children
   removeElements(); // Removes all p5 elements (so, the UI)
@@ -344,12 +356,208 @@ function transitionToCharacterSelectScreen() {
 
 }
 
-function transitionToWaitingForPlayersScreen() {
-  
-  GameScreen = GameScreens.WaitingForPlayers;
-  removeElements(); // Removes all p5 elements (so, the UI)
+function connectMultiplayer(nextGameScreen) {
 
-  startTimer(5);
+  // Connect to supabase. We need a client for each object we must track - those
+  // being our room (possibly) and player.
+  waitingRoomClient = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    {
+      realtime: {
+        params: {
+          eventsPerSecond: multiplayerRate,
+        },
+      }
+    }
+  );
+  myRoomClient = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    {
+      realtime: {
+        params: {
+          eventsPerSecond: multiplayerRate,
+        },
+      }
+    }
+  );
+
+  // set up the waiting rooms channel so we can join a game.
+  waitingRoomChannel = waitingRoomClient.channel(
+    'waitingRoom',
+    {
+      config: {
+        presence: {
+          key: Player.id,
+        },
+      },
+    }
+  );
+  // The waiting rooms state is a list of rooms. We will select one or add one
+  // of our own.
+  waitingRoomChannel.on('presence', { event: 'sync' }, () => {
+    //rooms = waitingRoomChannel.presenceState();
+    rooms = [];
+    for (var player in waitingRoomChannel.presenceState()) {
+      rooms.push(waitingRoomChannel.presenceState()[player][0]);
+    }
+    //rooms = Object.entries(w).map(e => e[1])[0];
+    //let state = waitingRoomChannel.presenceState();
+    //rooms = Object.values(state);
+    console.log("rooms @ ", Date.now(), rooms);
+    // for (let i = 0; (i < rooms.length) && !(myRoom === null); i++) {
+    //   let room = rooms[i];
+    //   // Update our room from the shared state unless we are the room owner,
+    //   // in which case we already have the latest copy.
+    //   if ((room.id === myRoom.id) && !(room.id === Player.id)) {
+    //     myRoom = room;
+    //     break;
+    //   }
+    // }
+  })
+  // Subscribe to the waiting room and set up a one-shot timer to join a room.
+  waitingRoomChannel.subscribe(async (status) => {
+    if (status === 'SUBSCRIBED') {
+      // Wait 1 second to see what rooms are available. This will give the "on
+      // presence event sync" callback above a chance to receive an initial list
+      // of rooms from the server.
+      setTimeout(() => {
+        // The timeout is set below. When it expires, this anonymous function
+        // will be executed.
+
+        // See if a room is available.
+        for (let i = 0; (i < rooms.length) && (myRoom === null); i++) {
+          let room = rooms[i];
+          // Max 5 palyers and at least 5 seconds before the game starts.
+          console.log("room numplayers = ", room.players.length, ", t minus ", (room.countdown - Date.now()));
+          if ((room.players.length < 5) && ((room.countdown - Date.now()) > 5000)) {
+            myRoom = room;
+          }
+        }
+
+        // If no rooms were available, then create one.
+        if (myRoom === null) {
+          myRoom =
+            {
+              id: Player.id, // We own the room.
+              players: [Player.id], // We are the only player initially.
+              countdown: Date.now() + 30*1000 // The game will start in 30 seconds.
+            };
+          waitingRoomChannel.track(myRoom);
+          // // Keep the room updated
+          // setInterval(() => {
+          //   waitingRoomChannel.track(myRoom);
+          // }, 1000 / multiplayerRate);
+        }
+
+        // Save bandwidth.
+        //waitingRoomChannel.unsubscribe();
+
+        // Set up the channel for whatever room we selected.
+        myRoomChannel = myRoomClient.channel(
+          myRoom.id,
+          {
+            config: {
+              presence: {
+                key: Player.id,
+              },
+            },
+          }
+        );
+        // The room's state is a list of players in the room, each of which will
+        // be continually updated.
+        myRoomChannel.on('presence', { event: 'sync' }, () => {
+          Players = [];
+          for (var player in myRoomChannel.presenceState()) {
+            Players.push(myRoomChannel.presenceState()[player][0]);
+          }
+          //Players = myRoomChannel.presenceState();
+          //Players = Object.entries(myRoomChannel.presenceState()).map(e => e[1])[0];
+          //let state = myRoomChannel.presenceState();
+          //Players = Object.values(state);
+          console.log("players @ ", Date.now(), Players);
+        });
+        myRoomChannel.on('broadcast', { event: 'wounded' }, (msg) => {
+          // payload looks like this: { idWounded, idWoundedBy, woundedUntil }
+          if (msg.payload.idWounded == Player.id) {
+            Player.woundedUntil = msg.payload.woundedUntil;
+            console.log("You were wounded by ", msg.payload.idWoundedBy);
+          }
+        });
+        // Subscribe to the room and set up a repeating timer to push our own
+        // player to the room's player list. When we are connected, we advance
+        // to the specified next game screen.
+        myRoomChannel.subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+
+            GameScreen = nextGameScreen;
+
+            setInterval(() => {
+              myRoomChannel.track(Player)
+              }, 1000 / multiplayerRate)
+          }
+        })
+
+      }, 3000); // 1000 milliseconds = 1 second
+    }
+  })
+
+
+
+
+  // room1 = multiplayerClient.channel('room1', {
+  //   config: {
+  //     presence: {
+  //       key: Player.id,
+  //     },
+  //   },
+  // });
+  // room1.on('presence', { event: 'sync' }, () => {
+  //   Players = room1.presenceState();
+  //   console.log(Date.now(), Players);
+  // })
+  // // room1.on('presence', { event: 'join' }, ({ newPresences }) => {
+  // //   console.log('New users have joined: ', newPresences)
+  // // })
+  // // room1.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+  // //   console.log('Users have left: ', leftPresences)
+  // // })
+  // room1.subscribe(async (status) => {
+  //   if (status === 'SUBSCRIBED') {
+  //     //const status = await room1.track(Player)
+  //     setInterval(() => {
+  //       room1.track(Player)
+  //       }, 1000 / multiplayerRate)
+  //   }
+  // })
+
+  // // Subscribe registers your client with the server
+  // room1
+  //   // Listen to broadcast messages.
+  //   .on('broadcast', { event: 'cursor-pos' }, (payload) => console.log(payload))
+  //   // Connect and 
+  //   .subscribe((status) => {
+  //     if (status === 'SUBSCRIBED') {
+  //       // now you can start broadcasting cursor positions
+  //       setInterval(() => {
+  //         room1.send({
+  //           type: 'broadcast',
+  //           event: 'cursor-pos',
+  //           payload: { x: Math.random(), y: Math.random() },
+  //         })
+  //         console.log(status)
+  //       }, 1000 / multiplayerRate)
+  //     }
+  //   })
+  
+}
+
+function transitionToWaitingForPlayersScreen() {
+
+  connectMultiplayer(GameScreens.WaitingForPlayers);
+
+  removeElements(); // Removes all p5 elements (so, the UI)
 }
 
 function transitionToPlayScreen() {
@@ -380,6 +588,9 @@ function transitionToFinishAnimationScreen() {
   SoundEffects.Wind.sound.stop();
 
   Music.FinishAnimation.sound.play();
+
+  waitingRoomChannel.unsubscribe();
+  myRoomChannel.unsubscribe();
 }
 
 function draw() {
@@ -566,37 +777,37 @@ function weaponActivated() {
   if (weaponString == Symbol.keyFor(WeaponTypes.Acorn)) {
 
     console.log("throw acorn");
-    let cooldown = Player.weaponCooldownUntil - millis();
+    let cooldown = Player.weaponCooldownUntil - Date.now();
     console.log("cooldown = ", cooldown);
     if (cooldown <= 0) {
-      Weapons.push(
+      Player.weapons.push(
         {
-          type: WeaponTypes.Acorn,
-          source: Player.id,
+          type: weaponString,
           positionXPercent: Player.positionXPercent,
           positionYPercent: Player.positionYPercent,
-          yVelocity: 2
+          yVelocity: 2,
+          expiresAt: Date.now() + 5000 // "range" is 5 seconds
         }
-        );
-      Player.weaponCooldownUntil = millis() + 700; // "fire" refresh rate
+      );
+      Player.weaponCooldownUntil = Date.now() + 700; // "fire" refresh rate
     }
 
   } else if (weaponString == Symbol.keyFor(WeaponTypes.Egg)) {
 
     console.log("throw egg");
-    let cooldown = Player.weaponCooldownUntil - millis();
+    let cooldown = Player.weaponCooldownUntil - Date.now();
     console.log("cooldown = ", cooldown);
     if (cooldown <= 0) {
-      Weapons.push(
+      Player.weapons.push(
         {
-          type: WeaponTypes.Egg,
-          source: Player.id,
+          type: weaponString,
           positionXPercent: Player.positionXPercent,
           positionYPercent: Player.positionYPercent,
-          yVelocity: 1
+          yVelocity: 1,
+          expiresAt: Date.now() + 5000 // "range" is 5 seconds
         }
-        );
-      Player.weaponCooldownUntil = millis() + 500; // "fire" refresh rate
+      );
+      Player.weaponCooldownUntil = Date.now() + 500; // "fire" refresh rate
     }
 
   } else if (weaponString == Symbol.keyFor(WeaponTypes.SlimeBall)) {
@@ -620,10 +831,10 @@ function weaponActivated() {
   } else if (weaponString == Symbol.keyFor(WeaponTypes.Fangs)) {
 
     console.log("use fangs");
-    let cooldown = Player.weaponCooldownUntil - millis();
+    let cooldown = Player.weaponCooldownUntil - Date.now();
     console.log("cooldown = ", cooldown);
     if (cooldown <= 0) {
-      Player.xBoostUntil = millis() + 333; // accelerated for 1/3rd second
+      Player.xBoostUntil = Date.now() + 333; // accelerated for 1/3rd second
       Player.weaponCooldownUntil = Player.xBoostUntil + 2000; // "fire" refresh rate
     }
 
@@ -641,7 +852,7 @@ function weaponActivated() {
 function updatePlayer() {
   let xMove = massToXAccel(Characters[Player.character].stats.mass);
   let xBoostFactor = 10;
-  let xBoost = xBoostFactor * ((Player.xBoostUntil - millis()) / 1000);
+  let xBoost = xBoostFactor * ((Player.xBoostUntil - Date.now()) / 1000);
   if (xBoost > 0) {
     xMove += xBoost;
   }
@@ -665,7 +876,7 @@ function updatePlayer() {
 
   if (GameScreen == GameScreens.Play) {
     let yAccel = massToYAccel(Characters[Player.character].stats.mass);
-    if (millis() >= Player.woundedUntil) {
+    if (Date.now() >= Player.woundedUntil) {
       Player.positionYPercent += yAccel;
     } else {
       Player.positionYPercent -= yAccel;
@@ -674,19 +885,13 @@ function updatePlayer() {
 }
 
 
-function simulateOtherPlayers() {
+function drawOtherPlayers() {
 
-  for (let i = 0; i < SimulatedPlayers.length; i++) {
-    let otherPlayer = SimulatedPlayers[i];
-    if (GameScreen == GameScreens.Play) {
-      let yAccel = massToYAccel(Characters[otherPlayer.character].stats.mass);
-      if (millis() >= otherPlayer.woundedUntil) {
-        otherPlayer.positionYPercent += yAccel;
-      } else {
-        otherPlayer.positionYPercent -= yAccel;
-      }
+  for (let i = 0; i < Players.length; i++) {
+    let player = Players[i];
+    if (!(player.id == Player.id)) {
+      drawOtherPlayer(player, 0, true);
     }
-    drawOtherPlayer(otherPlayer, 0, true);
   }
 }
 
@@ -740,8 +945,8 @@ function drawWaitingForPlayersScreen() {
   if (0 === countdownResult) {
     Music.CharacterSelect.sound.stop();
 
-    jumpProgress = 1 - ((CountDownTimestamp - millis()) / 1000);
-    console.log('', WaitingForPlayersJump_t, 'frames -- ', jumpProgress, '% ', CountDownTimestamp, '-', millis(), ' = ', CountDownTimestamp - millis());
+    jumpProgress = 1 - ((myRoom.countdown - Date.now()) / 1000);
+    console.log('', WaitingForPlayersJump_t, 'frames -- ', jumpProgress, '% ', myRoom.countdown, '-', Date.now(), ' = ', myRoom.countdown - Date.now());
     PlayerYPercentOffset = -10 * normal_parabola(jumpProgress);
 
     //PlayerYPercentOffset = -10 * normal_parabola(WaitingForPlayersJump_t / 60);
@@ -749,9 +954,9 @@ function drawWaitingForPlayersScreen() {
     WaitingForPlayersJump_t++;
   }
 
-  drawPlayer(PlayerYPercentOffset);
+  drawOtherPlayers();
 
-  simulateOtherPlayers();
+  drawPlayer(PlayerYPercentOffset);
 
 }
 
@@ -763,16 +968,15 @@ function drawPlayScreen() {
   updateCloudsY();
   drawClouds();
 
+  drawOtherPlayers();
+
   updatePlayer();
   drawPlayer(0);
 
-  simulateOtherPlayers();
-
-  updateWeapons();
-  collideWeapons();
-  drawWeapons();
+  updateOwnWeapons();
+  collideOwnWeapons();
+  drawAllWeapons();
   drawProjectileButton();
-  
 }
 
 function drawLeavesExplosion(){
@@ -812,11 +1016,8 @@ function drawFinishAnimationScreen() {
   switch (finishAnimationState) {
     case FinishAnimationStates.FASStart:
     {
-      //firstPlacePlayer = getFirstPlacePlayer();
-      playersPlaced.push(Player);
-      for (let i = 0; i < SimulatedPlayers.length; i++) {
-        let otherPlayer = SimulatedPlayers[i];
-        playersPlaced.push(otherPlayer);
+      for (let i = 0; i < Players.length; i++) {
+        playersPlaced.push(Players[i]);
       }
       // in a sort function, 1 means b has precedence (comes first)
       playersPlaced.sort((a,b) => ((b.positionYPercent > a.positionYPercent) ? 1 : -1));
@@ -838,11 +1039,13 @@ function drawFinishAnimationScreen() {
       if (tempYCoord > maxPlayerYCoord) {
         maxPlayerYCoord = tempYCoord;
       }
-      for (let i = 0; i < SimulatedPlayers.length; i++) {
-        let otherPlayer = SimulatedPlayers[i];
-        tempYCoord = drawOtherPlayer(otherPlayer, -finishAnimationYPercentAdvance, true);
-        if (tempYCoord > maxPlayerYCoord) {
-          maxPlayerYCoord = tempYCoord;
+      for (let i = 0; i < Players.length; i++) {
+        let player = Players[i];
+        if (!(player.id == Player.id)) {
+          tempYCoord = drawOtherPlayer(player, -finishAnimationYPercentAdvance, true);
+          if (tempYCoord > maxPlayerYCoord) {
+            maxPlayerYCoord = tempYCoord;
+          }
         }
       }
 
@@ -912,8 +1115,6 @@ function drawFinishAnimationScreen() {
           finishAnimationState = FinishAnimationStates.FASDone;
         }
       }
-
-
       break;
     }
     case FinishAnimationStates.FASDone:
@@ -923,7 +1124,7 @@ function drawFinishAnimationScreen() {
       drawOtherPlayer(firstPlacePlayer,0,false);
       push();
         textAlign(CENTER, TOP);
-        textSize(16);
+        textSize(32);
         textStyle(BOLD);
         let message = firstPlacePlayer.name + " wins!";
         text(message, CanvasWidth/2, CanvasHeight/2);
@@ -992,7 +1193,7 @@ function drawPlayer(percentOffsetY) {
     }
 
     translate(playerXCoord,playerYCoord);
-    let woundedRatio = (Player.woundedUntil - millis()) / 1000;
+    let woundedRatio = (Player.woundedUntil - Date.now()) / 1000;
     if (woundedRatio > 0) {
       angleMode(DEGREES);
       rotate(360 * woundedRatio);
@@ -1011,18 +1212,6 @@ function getPlayerYCoord(percentOffsetY) {
   return percentToY(getPlayerEffectivePositionYPercent() + percentOffsetY)
 }
 
-function getFirstPlacePlayer() {
-
-  let tempFirstPlace = Player;
-  for (let i = 0; i < SimulatedPlayers.length; i++) {
-    let otherPlayer = SimulatedPlayers[i];
-    if (otherPlayer.positionYPercent > tempFirstPlace.positionYPercent) {
-      tempFirstPlace = otherPlayer;
-    }
-  }
-  return tempFirstPlace;
-}
-
 function drawOtherPlayer(otherPlayer, percentOffsetY, adjusted) {
   push();
 
@@ -1035,7 +1224,7 @@ function drawOtherPlayer(otherPlayer, percentOffsetY, adjusted) {
     }
 
     translate(playerXCoord,playerYCoord);
-    let woundedRatio = (otherPlayer.woundedUntil - millis()) / 1000;
+    let woundedRatio = (otherPlayer.woundedUntil - Date.now()) / 1000;
     if (woundedRatio > 0) {
       angleMode(DEGREES);
       rotate(360 * woundedRatio);
@@ -1107,18 +1296,14 @@ function massToYAccel(mass) {
   //       to advance within the play time, and scale by that
 }
 
-function startTimer(seconds) {
-  CountDownTimestamp = millis() + (seconds * 1000);
-}
-
-// If the current CountDownTimestamp is still in the future, this
+// If the current myRoom.countdown is still in the future, this
 // function draws an appropriate countdown to the canvas. As a
 // special case, 0 is not drawn to the canvas. This function
 // returns the countdown value as an integer (down to 0), and
 // then returns false when the countdown has completed.
 function drawCountdown() {
 
-  let countDown = Math.floor((CountDownTimestamp - millis())/1000); // i.e. round down
+  let countDown = Math.floor((myRoom.countdown - Date.now())/1000); // i.e. round down
 
   if (countDown > 0) {
     push();
@@ -1219,7 +1404,20 @@ function checkRectangularCollision(A_x1,A_y1, A_x2,A_y2, B_x1,B_y1, B_x2,B_y2) {
          A_y2 > B_y1;   // bottom > (below) other's top
 }
 
-function collideWeapons() {
+function wound(otherPlayer, forTime) {
+  myRoomChannel.send({
+    type: 'broadcast',
+    event: 'wounded',
+    payload: 
+    {
+      idWounded: otherPlayer.id,
+      idWoundedBy: Player.id,
+      woundedUntil: Date.now() + forTime
+    }
+  })
+}
+
+function collideOwnWeapons() {
 
   const playerInvincibleTime = 1000;
 
@@ -1231,21 +1429,23 @@ function collideWeapons() {
     let snakeSprite = Characters[Player.character].sprite;
     let snakeXCoord = getPlayerXCoord();
     let snakeYCoord = getPlayerYCoord(0);
-    for (let i = 0; i < SimulatedPlayers.length; i++) {
-      let otherPlayer = SimulatedPlayers[i];
-      if (otherPlayer.woundedUntil + playerInvincibleTime > millis()) {
+    for (let i = 0; i < Players.length; i++) {
+      let player = Players[i];
+      if (player.id == Player.id) {
+        continue; // don't attack ourself
+      } else if (player.woundedUntil + playerInvincibleTime > Date.now()) {
         continue;
       } else if (
         checkSpriteCollision(
           snakeSprite,
           snakeXCoord,
           snakeYCoord,
-          Characters[otherPlayer.character].sprite,
-          getOtherPlayerXCoord(otherPlayer),
-          getOtherPlayerYCoord(otherPlayer,0,true))
+          Characters[player.character].sprite,
+          getOtherPlayerXCoord(player),
+          getOtherPlayerYCoord(player,0,true))
       ) {
-        otherPlayer.woundedUntil = millis() + playerWoundedTime;
-        console.log("Snake struck ", Characters[otherPlayer.character].name);
+        wound(player, playerWoundedTime);
+        console.log("Snake struck ", Characters[player.character].name);
       }
     }
   }
@@ -1258,42 +1458,42 @@ function collideWeapons() {
     let hhSprite = Characters[Player.character].sprite;
     let hhXCoord = getPlayerXCoord();
     let hhYCoord = getPlayerYCoord(0);
-    for (let i = 0; i < SimulatedPlayers.length; i++) {
-      let otherPlayer = SimulatedPlayers[i];
-      if (otherPlayer.woundedUntil + playerInvincibleTime > millis()) {
+    for (let i = 0; i < Players.length; i++) {
+      let player = Players[i];
+      if (player.id == Player.id) {
+        continue; // don't attack ourself
+      } else if (player.woundedUntil + playerInvincibleTime > Date.now()) {
         continue;
       } else if (
         checkSpriteCollision(
           hhSprite,
           hhXCoord,
           hhYCoord,
-          Characters[otherPlayer.character].sprite,
-          getOtherPlayerXCoord(otherPlayer),
-          getOtherPlayerYCoord(otherPlayer,0,true))
+          Characters[player.character].sprite,
+          getOtherPlayerXCoord(player),
+          getOtherPlayerYCoord(player,0,true))
       ) {
-        otherPlayer.woundedUntil = millis() + playerWoundedTime;
-        console.log("Hedgehog struck ", Characters[otherPlayer.character].name);
+        wound(player, playerWoundedTime);
+        console.log("Hedgehog struck ", Characters[player.character].name);
       }
     }
   }
 
-  for (let i = 0; i < Weapons.length; i++) {
-    let weapon = Weapons[i];
+  for (let i = 0; i < Player.weapons.length; i++) {
+    let weapon = Player.weapons[i];
 
-    collidWeaponAndPlayer(weapon, Player, playerInvincibleTime);
-
-    for (let i = 0; i < SimulatedPlayers.length; i++) {
-      let otherPlayer = SimulatedPlayers[i];
-      collidWeaponAndPlayer(weapon, otherPlayer, playerInvincibleTime);
+    for (let i = 0; i < Players.length; i++) {
+      let player = Players[i];
+      if (!(player.id == Player.id)) {
+        collideWeaponAndPlayer(weapon, player, playerInvincibleTime);
+      }
     }
   }
 }
 
-function collidWeaponAndPlayer(weapon, player, invincibleTime) {
+function collideWeaponAndPlayer(weapon, player, invincibleTime) {
 
-  if (player.id == weapon.source) {
-    return; // weapons can't hit the player that threw them
-  } else if (player.woundedUntil + invincibleTime > millis()) {
+  if (player.woundedUntil + invincibleTime > Date.now()) {
     return;
   } else {
     let weaponSprite = getWeaponSprite(weapon);
@@ -1311,17 +1511,20 @@ function collidWeaponAndPlayer(weapon, player, invincibleTime) {
       let playerWoundedTime = 500; // todo different effects for each weapon.
                                    // todo hedgehog invincible to Egg
 
-      player.woundedUntil = millis() + playerWoundedTime;
-      console.log(Symbol.keyFor(weapon.type), " struck ", player.name, "'s ", Characters[player.character].name);
-      //drawEggSplat()
+      wound(player, playerWoundedTime);
+      console.log(weapon.type, " struck ", player.name, "'s ", Characters[player.character].name);
     }
   }
 }
 
-function updateWeapons() {
-  for (let i = 0; i < Weapons.length; i++) {
-    let weapon = Weapons[i];
-    weapon.positionYPercent += weapon.yVelocity;
+function updateOwnWeapons() {
+  for (let i = 0; i < Player.weapons.length; i++) {
+    let weapon = Player.weapons[i];
+    if (weapon.expiresAt <= Date.now()) {
+      Player.weapons.splice(i, 1); // remove weapon from array
+    } else {
+      weapon.positionYPercent += weapon.yVelocity;
+    }
   }
 }
   function touchEnded(){
@@ -1330,20 +1533,23 @@ function updateWeapons() {
 
 
 
-function drawWeapons() {
-  for (let i = 0; i < Weapons.length; i++) {
-    push();
+function drawAllWeapons() {
+  for (let pi = 0; pi < Players.length; pi++) {
+    let player = Players[pi];
+    for (let wi = 0; wi < player.weapons.length; wi++) {
+      push();
 
-      let weapon = Weapons[i];
+        let weapon = player.weapons[wi];
 
-      imageMode(CENTER);
-      let weaponXCoord = getWeaponXCoord(weapon);
-      let weaponYCoord = getWeaponYCoord(weapon);
+        imageMode(CENTER);
+        let weaponXCoord = getWeaponXCoord(weapon);
+        let weaponYCoord = getWeaponYCoord(weapon);
 
-      translate(weaponXCoord,weaponYCoord);
-      image(getWeaponSprite(weapon), 0, 0);
-    
-    pop();
+        translate(weaponXCoord,weaponYCoord);
+        image(getWeaponSprite(weapon), 0, 0);
+      
+      pop();
+    }
   }
 }
 
@@ -1364,12 +1570,12 @@ function getAdjustedWeaponPositionYPercent(weapon) {
 
 function getWeaponSprite(weapon) {
 
-  if (weapon.type == WeaponTypes.Egg)
+  if (weapon.type == Symbol.keyFor(WeaponTypes.Egg))
   {
     return OtherSprites.Egg;
   }
 
-  if (weapon.type == WeaponTypes.Acorn)
+  if (weapon.type == Symbol.keyFor(WeaponTypes.Acorn))
   {
     return OtherSprites.Acorn;
   }
