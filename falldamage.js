@@ -139,6 +139,8 @@ const Fonts = {
   CalligraphyWet: null
 }
 
+let leafPileExplosionEnd = 0;
+
 // let SimulatedPlayers = [
 //   {
 //     id: uuidv4(),
@@ -482,7 +484,7 @@ function connectMultiplayer(nextGameScreen) {
           // payload looks like this: { idWounded, idWoundedBy, woundedUntil }
           if (msg.payload.idWounded == Player.id) {
             Player.woundedUntil = msg.payload.woundedUntil;
-            console.log("You were wounded by ", msg.payload.idWoundedBy);
+            console.log("You were wounded by ", msg.payload.idWoundedBy, ' @ ', Date.now(), ' until ', Player.woundedUntil);
           }
         });
         // Subscribe to the room and set up a repeating timer to push our own
@@ -813,7 +815,7 @@ function weaponActivated() {
   } else if (weaponString == Symbol.keyFor(WeaponTypes.SlimeBall)) {
 
     console.log("throw SlimeBall");
-    let cooldown = Player.weaponCooldownUntil - millis();
+    let cooldown = Player.weaponCooldownUntil - Date.now();
     console.log("cooldown = ", cooldown);
     if (cooldown <= 0) {
       Weapons.push(
@@ -825,7 +827,7 @@ function weaponActivated() {
           yVelocity: 5
         }
         );
-      Player.weaponCooldownUntil = millis() + 500; // "fire" refresh rate
+      Player.weaponCooldownUntil = Date.now() + 500; // "fire" refresh rate
     }
 
   } else if (weaponString == Symbol.keyFor(WeaponTypes.Fangs)) {
@@ -980,14 +982,22 @@ function drawPlayScreen() {
 }
 
 function drawLeavesExplosion(){
+  let timeRemaining = leafPileExplosionEnd - Date.now();
   push();
         imageMode(CENTER);
-        image(OtherSprites.EndFrame1,CanvasWidth/2,groundYCoord);
-        image(OtherSprites.EndFrame2,CanvasWidth/2,groundYCoord);
-        image(OtherSprites.EndFrame3,CanvasWidth/2,groundYCoord);
-        image(OtherSprites.EndFrame4,CanvasWidth/2,groundYCoord);
-        image(OtherSprites.EndFrame5,CanvasWidth/2,groundYCoord);
+        if (timeRemaining > 800/2) {
+          image(OtherSprites.EndFrame1,CanvasWidth/2,CanvasHeight/2);
+        } else if (timeRemaining > 600/2) {
+          image(OtherSprites.EndFrame2,CanvasWidth/2,CanvasHeight/2);
+        } else if (timeRemaining > 400/2) {
+          image(OtherSprites.EndFrame3,CanvasWidth/2,CanvasHeight/2);
+        } else if (timeRemaining > 200/2) {
+          image(OtherSprites.EndFrame4,CanvasWidth/2,CanvasHeight/2);
+        } else if (timeRemaining > 0/2) {
+          image(OtherSprites.EndFrame5,CanvasWidth/2,CanvasHeight/2);
+        } 
       pop();
+      return timeRemaining > 0;
 }
 
 const FinishAnimationStates = {
@@ -1083,6 +1093,7 @@ function drawFinishAnimationScreen() {
       drawLeaves();
       if (yCoord >= groundYCoord-10) {
         finishAnimationState = FinishAnimationStates.FASExplodeLeaves;
+        leafPileExplosionEnd = Date.now() + 500;
       }
       break;
     }
@@ -1090,13 +1101,16 @@ function drawFinishAnimationScreen() {
     {
       drawGround();
       drawOtherPlayer(firstPlacePlayer,0,false);
-      drawLeaves();
-      
-      if (playersPlaced.length > 0) {
-        finishAnimationState = FinishAnimationStates.FASLandOtherPlayers;
-      } else {
-        finishAnimationState = FinishAnimationStates.FASDone;
+      if(false == drawLeavesExplosion()){
+
+        if (playersPlaced.length > 0) {
+          finishAnimationState = FinishAnimationStates.FASLandOtherPlayers;
+        } else {
+          finishAnimationState = FinishAnimationStates.FASDone;
+        }
+
       }
+      
       break;
     }
     case FinishAnimationStates.FASLandOtherPlayers:
@@ -1121,6 +1135,7 @@ function drawFinishAnimationScreen() {
     {
       drawGround();
       drawCraters();
+    //  drawLeavesExplosion();
       drawOtherPlayer(firstPlacePlayer,0,false);
       push();
         textAlign(CENTER, TOP);
@@ -1169,14 +1184,6 @@ function drawLeaves(){
   push();
   imageMode(CENTER);
     image(OtherSprites.LeafPile,CanvasWidth/2,groundYCoord - 30)
-   // image(OtherSprites.LeafBrown,CanvasWidth/2,groundYCoord)
-  //  image(OtherSprites.LeafYellow,CanvasWidth/2 + 15,groundYCoord)
-   // image(OtherSprites.LeafGreen,CanvasWidth/2 -20,groundYCoord)
-    //image(OtherSprites.LeafRed,CanvasWidth/2,groundYCoord +32)
-   // image(OtherSprites.LeafGreen,CanvasWidth/2,groundYCoord -15)
-    //image(OtherSprites.LeafRed,CanvasWidth/2,groundYCoord +30)
-    //image(OtherSprites.LeafBrown,CanvasWidth/2 + 25,groundYCoord +0)
-    //image(OtherSprites.LeafYellow,CanvasWidth/2 -30,groundYCoord +20)
   pop();
 
 }
@@ -1424,7 +1431,7 @@ function collideOwnWeapons() {
   // Check Snake attack collision (spacebar must be held)
   if (keyIsDown(KEY_CODE_SPACEBAR) && Characters[Player.character].name == "Snake") {
 
-    const playerWoundedTime = 1000;
+    const playerWoundedTime = 2000;
 
     let snakeSprite = Characters[Player.character].sprite;
     let snakeXCoord = getPlayerXCoord();
@@ -1453,7 +1460,7 @@ function collideOwnWeapons() {
   // Check Hedgehog attack collision
   if (Characters[Player.character].name == "Hedgehog") {
 
-    const playerWoundedTime = 1500;
+    const playerWoundedTime = 2500;
 
     let hhSprite = Characters[Player.character].sprite;
     let hhXCoord = getPlayerXCoord();
@@ -1508,7 +1515,7 @@ function collideWeaponAndPlayer(weapon, player, invincibleTime) {
           getOtherPlayerYCoord(player,0,true))
     ) {
 
-      let playerWoundedTime = 500; // todo different effects for each weapon.
+      let playerWoundedTime = 1500; // todo different effects for each weapon.
                                    // todo hedgehog invincible to Egg
 
       wound(player, playerWoundedTime);
