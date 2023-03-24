@@ -802,13 +802,13 @@ function weaponActivated() {
     let cooldown = Player.weaponCooldownUntil - Date.now();
     console.log("cooldown = ", cooldown);
     if (cooldown <= 0) {
-      Weapons.push(
+      Player.weapons.push(
         {
-          type: WeaponTypes.SlimeBall,
-          source: Player.id,
+          type: weaponString,
           positionXPercent: Player.positionXPercent,
           positionYPercent: Player.positionYPercent,
-          yVelocity: 5
+          yVelocity: 5,
+          expiresAt: Date.now() + 5000 // "range" is 5 seconds
         }
         );
       Player.weaponCooldownUntil = Date.now() + 500; // "fire" refresh rate
@@ -975,7 +975,7 @@ function drawPlayScreen() {
   collideOwnWeapons();
   drawOwnWeapons();
   drawOtherWeapons();
-  
+
   drawProjectileButton();
 }
 
@@ -1618,7 +1618,8 @@ function getWeaponSprite(weapon) {
   {
     return OtherSprites.Acorn;
   }
-  if (weapon.type == WeaponTypes.SlimeBall)
+  
+  if (weapon.type == Symbol.keyFor(WeaponTypes.SlimeBall))
   {
     return OtherSprites.SlimeBall;
   }
