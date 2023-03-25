@@ -75,6 +75,24 @@ const Characters = [
   }
 ];
 
+let PlayControls = {
+  Left: {
+    x: 0, // these will be configured when we know the canvas size
+    y: 0,
+    sprite: null
+  },
+  Fire: {
+    x: 0,
+    y: 0,
+    sprite: null
+  },
+  Right: {
+    x: 0,
+    y: 0,
+    sprite: null
+  }
+}
+
 const OtherSprites = {
   Cloud1: null,
   Cloud2: null,
@@ -181,7 +199,7 @@ const SUPABASE_URL = 'https://nnayiddgjspiqqpxbzlr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uYXlpZGRnanNwaXFxcHhiemxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzY2NTIwODQsImV4cCI6MTk5MjIyODA4NH0.sb8ApuZezC0bNZHmfXr_mWp2MGU3-aoRS3hg4Py5qps';
 let waitingRoomClient; // supabase client for tracking the waiting room
 let myRoomClient; // supabase client for tracking our game room
-let multiplayerRate = 15 * 2; // events per second -- but this seems to be operating at half the desired rate????
+let multiplayerRate = 1 * 2; // events per second -- but this seems to be operating at half the desired rate????
 let waitingRoomChannel = null;
 let myRoomChannel = null;
 let rooms = [];
@@ -220,6 +238,10 @@ function preload() {
   OtherSprites.Egg = loadImage('assets/sprites/FD_Egg.png');
   OtherSprites.Acorn = loadImage('assets/sprites/FD_Acorn.png');
 
+  PlayControls.Left.sprite = loadImage('assets/sprites/FD_ControlLeft.png');
+  PlayControls.Fire.sprite = loadImage('assets/sprites/FD_ControlFire.png');
+  PlayControls.Right.sprite = loadImage('assets/sprites/FD_ControlRight.png');
+
   // Fonts
   Fonts.Hatolie = loadFont('assets/fonts/Hatolie.ttf');
   Fonts.CalligraphyWet = loadFont('assets/fonts/CalligraphyWet.ttf');
@@ -254,6 +276,13 @@ function setup() {
   Canvas.id("canvas");
   Canvas.style("z-index:0");
 
+  PlayControls.Left.x = PlayControls.Left.sprite.width/2;
+  PlayControls.Left.y = CanvasHeight - PlayControls.Left.sprite.height/2;
+  PlayControls.Fire.x = CanvasWidth/2;
+  PlayControls.Fire.y = CanvasHeight - PlayControls.Fire.sprite.height/2;
+  PlayControls.Right.x = CanvasWidth - PlayControls.Right.sprite.width/2;
+  PlayControls.Right.y = CanvasHeight - PlayControls.Right.sprite.height/2;
+
   // Prevent scrolling and dragging of the page when a mouse wheel or touch event occurs inside the canvas
   document.getElementById( "canvas" ).onwheel = function(event){ event.preventDefault(); };
   document.getElementById( "canvas" ).onmousewheel = function(event){ event.preventDefault(); };
@@ -270,6 +299,12 @@ function setup() {
   StartButton.parent("UI");
   StartButton.mouseClicked(mouseClicked_IntroScreenStartButton);
   StartButton.addClass("bigbutton");
+}
+
+function touchStarted() {
+  if  (!fullScreen()) {
+    fullScreen(true);
+  }
 }
 
 function mouseClicked_IntroScreenStartButton() {
@@ -396,7 +431,7 @@ function connectMultiplayer(nextGameScreen) {
           {
             id: Player.id, // We own the room.
             players: [Player.id], // We are the only player initially.
-            countdown: Date.now() + 30*1000 // The game will start in 30 seconds.
+            countdown: Date.now() + 5*1000 // The game will start in 30 seconds.
           };
         waitingRoomChannel.track(myRoom);
         // // Keep the room updated
@@ -552,9 +587,6 @@ function transitionToFinishAnimationScreen() {
   SoundEffects.Wind.sound.stop();
 
   Music.FinishAnimation.sound.play();
-
-  waitingRoomChannel.unsubscribe();
-  myRoomChannel.unsubscribe();
 }
 
 function draw() {
@@ -737,6 +769,28 @@ function keyPressed() {
   }
 }
 
+function mouseClicked() {
+  if (GameScreen == GameScreens.Play) {
+    if (pointIsInPlayControl(mouseX,mouseY, PlayControls.Fire)) {
+      weaponActivated();
+    }
+  }
+}
+
+function pointIsInPlayControl(x,y, ctrl) {
+  return pointIsInRect(
+    x,y,
+    ctrl.x - ctrl.sprite.width/2, 
+    ctrl.y - ctrl.sprite.height/2, 
+    ctrl.x + ctrl.sprite.width/2,
+    ctrl.y + ctrl.sprite.height/2
+  );
+}
+
+function pointIsInRect(x,y, rect_x1,rect_y1, rect_x2,rect_y2) {
+  return x > rect_x1 && x < rect_x2 && y > rect_y1 && y < rect_y2;
+}
+
 function weaponActivated() {
 
   let weaponString = Characters[Player.character].stats.weapon;
@@ -807,7 +861,9 @@ function updatePlayer() {
     xMove += xBoost;
   }
 
-  if (keyIsDown(LEFT_ARROW)) {
+  if (keyIsDown(LEFT_ARROW) ||
+      (mouseIsPressed && pointIsInPlayControl(mouseX,mouseY, PlayControls.Left)))
+  {
     Player.facing="left";
     Player.positionXPercent -= xMove;
     if (Player.positionXPercent < 0) {
@@ -816,7 +872,11 @@ function updatePlayer() {
     }
   }
 
-  if (keyIsDown(RIGHT_ARROW)) {
+
+
+  if (keyIsDown(RIGHT_ARROW) ||
+      (mouseIsPressed && pointIsInPlayControl(mouseX,mouseY, PlayControls.Right)))
+  {
     Player.facing="right";
     Player.positionXPercent += xMove;
     if (Player.positionXPercent > 100) {
@@ -940,6 +1000,8 @@ function drawPlayScreen() {
   collideOwnWeapons();
   drawOwnWeapons();
   drawOtherWeapons();
+
+  drawPlayControls();
 }
 
 
@@ -1065,6 +1127,12 @@ function drawFinishAnimationScreen() {
         playersPlaced.shift();
         if (playersPlaced.length == 0) {
           finishAnimationState = FinishAnimationStates.FASDone;
+
+          setTimeout(() => {
+
+            waitingRoomChannel.unsubscribe();
+            myRoomChannel.unsubscribe();
+          }, 2000);
         }
       }
       break;
@@ -1538,6 +1606,16 @@ function getWeaponSprite(weapon) {
   {
     return OtherSprites.Acorn;
   }
+}
+
+function drawPlayControls() {
+  push();
+    for (var name in PlayControls) {
+      let ctrl = PlayControls[name];
+      imageMode(CENTER);
+      image(ctrl.sprite, ctrl.x, ctrl.y);
+    }
+  pop();
 }
 
 // Hatolie 83 pt - Fall
