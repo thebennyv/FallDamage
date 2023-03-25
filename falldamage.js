@@ -584,8 +584,8 @@ function transitionToFinishAnimationScreen() {
 
   Music.FinishAnimation.sound.play();
 
-  waitingRoomChannel.unsubscribe();
-  myRoomChannel.unsubscribe();
+  
+
 }
 
 function draw() {
@@ -1144,6 +1144,11 @@ function drawFinishAnimationScreen() {
         playersPlaced.shift();
         if (playersPlaced.length == 0) {
           finishAnimationState = FinishAnimationStates.FASDone;
+
+          setTimeout(() => {
+            waitingRoomChannel.unsubscribe();
+            myRoomChannel.unsubscribe();
+          },2000);
         }
       }
       break;
