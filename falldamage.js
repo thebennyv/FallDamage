@@ -3,8 +3,8 @@
 //   tree branch
 //   infinite tree trunk
 //   multiplayer
-//   leaves explosion
-//   crater sprite
+//   leaves explosion WIP
+//   crater sprite    COMPLETED
 //   sound effects
 //   balance
 //   motion lines
@@ -21,10 +21,11 @@ const GameScreens = {
 }
 
 const WeaponTypes = {
-	Egg:    Symbol.for("Egg"),
-	Acorn:  Symbol.for("Acorn"),
-	Spikes: Symbol.for("Spikes"),
-	Fangs:  Symbol.for("Fangs")
+	Egg:       Symbol.for("Egg"),
+	Acorn:     Symbol.for("Acorn"),
+	Spikes:    Symbol.for("Spikes"),
+	Fangs:     Symbol.for("Fangs"),
+  SlimeBall: Symbol.for("SlimeBall")
 }
 
 const Characters = [
@@ -32,13 +33,13 @@ const Characters = [
     name: "Squirrel",
     spritePath:"assets/sprites/FD_L_Squirrel.png",
     sprite:null,
-    stats: {mass: 5, speed: 6, armor: 3, weapon: "Acorn"}
+    stats: {mass: 4, speed: 6, armor: 3, weapon: "Acorn"}
   },
   {
     name: "Turtle",
     spritePath:"assets/sprites/FD_L_Turtle.png",
     sprite:null,
-    stats: {mass: 4, speed: 7, armor: 10},
+    stats: {mass: 5, speed: 5, armor: 10},
    // easterEggSpritePath:"assets/sprites/FD_L_TurtleSpecial",
    // easterEggSprite:null
 
@@ -47,31 +48,31 @@ const Characters = [
     name: "Bird",
     spritePath:"assets/sprites/FD_L_Bird.png",
     sprite:null,
-    stats: {mass: 2, speed: 10, armor: 1}
+    stats: {mass: 2, speed: 7.5, armor: 1,}
   },
   {
     name: "Hedgehog",
     spritePath:"assets/sprites/FD_L_Hedgehog.png",
     sprite:null,
-    stats: {mass: 3, speed: 6, armor: 8, weapon: "Spikes"}
+    stats: {mass: 3.75, speed: 6.5, armor: 8, weapon: "Spikes"}
   },
   {
     name: "Chicken",
     spritePath:"assets/sprites/FD_L_Chicken.png",
     sprite:null,
-    stats: {mass: 7, speed: 3, armor: 7, weapon: "Egg"}
+    stats: {mass: 4, speed: 6, armor: 7, weapon: "Egg"}
   },
   {
     name: "Snake",
     spritePath:"assets/sprites/FD_L_Snake.png",
     sprite:null,
-    stats: {mass: 5, speed: 9, armor: 3, weapon: "Fangs"}
+    stats: {mass: 5, speed: 7.5, armor: 3, weapon: "Fangs"}
   },
   {
     name: "Frog",
     spritePath:"assets/sprites/FD_L_Frog.png",
     sprite:null,
-    stats: {mass: 4, speed: 6, armor: 4}
+    stats: {mass: 4, speed: 6, armor: 4, weapon: "SlimeBall"}
   }
 ];
 
@@ -84,7 +85,15 @@ const OtherSprites = {
   Cloud3a: null,
   EggSplat: null,
   Egg: null,
-  Acorn: null
+  Acorn: null,
+  SlimeBall:null,
+  Crater: null,
+  Ground: null,
+  LeafRed:null,
+  LeafGreen:null,
+  LeafYellow:null,
+  LeafBrown: null,
+  ProjectileButton: null,
 }
 
 let GameScreen = GameScreens.Intro;
@@ -131,6 +140,8 @@ const Fonts = {
   Hatolie: null,
   CalligraphyWet: null
 }
+
+let leafPileExplosionEnd = 0;
 
 // let SimulatedPlayers = [
 //   {
@@ -181,7 +192,7 @@ const SUPABASE_URL = 'https://nnayiddgjspiqqpxbzlr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uYXlpZGRnanNwaXFxcHhiemxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzY2NTIwODQsImV4cCI6MTk5MjIyODA4NH0.sb8ApuZezC0bNZHmfXr_mWp2MGU3-aoRS3hg4Py5qps';
 let waitingRoomClient; // supabase client for tracking the waiting room
 let myRoomClient; // supabase client for tracking our game room
-let multiplayerRate = 15 * 2; // events per second -- but this seems to be operating at half the desired rate????
+let multiplayerRate = 5 * 2; // events per second -- but this seems to be operating at half the desired rate????
 let waitingRoomChannel = null;
 let myRoomChannel = null;
 let rooms = [];
@@ -219,7 +230,21 @@ function preload() {
   OtherSprites.EggSplat = loadImage('assets/sprites/FD_EggSplat.png');
   OtherSprites.Egg = loadImage('assets/sprites/FD_Egg.png');
   OtherSprites.Acorn = loadImage('assets/sprites/FD_Acorn.png');
-
+  OtherSprites.SlimeBall = loadImage('assets/sprites/FD_SlimeBall.png');
+  OtherSprites.Logo = loadImage('assets/sprites/FallDamage.png');
+  OtherSprites.Crater = loadImage('assets/sprites/FD_Crater.png');
+  OtherSprites.Ground = loadImage('assets/sprites/FD_GameEndFloor.png');
+  OtherSprites.LeafYellow = loadImage('assets/sprites/FD_LeafYellow.png');
+  OtherSprites.LeafRed = loadImage('assets/sprites/FD_LeafRed.png');
+  OtherSprites.LeafGreen = loadImage('assets/sprites/FD_LeafGreen.png');
+  OtherSprites.LeafBrown = loadImage('assets/sprites/FD_LeafBrown.png');
+  OtherSprites.LeafPile = loadImage('assets/sprites/FD_LeafPile.png');
+  OtherSprites.EndFrame1 = loadImage('assets/sprites/FD_LeafExplosionFrame1.png')
+  OtherSprites.EndFrame2 = loadImage('assets/sprites/FD_LeafExplosionFrame2.png')
+  OtherSprites.EndFrame3 = loadImage('assets/sprites/FD_LeafExplosionFrame3.png')
+  OtherSprites.EndFrame4 = loadImage('assets/sprites/FD_LeafExplosionFrame4.png')
+  OtherSprites.EndFrame5 = loadImage('assets/sprites/FD_LeafExplosionFrame5.png')
+  OtherSprites.ProjectileButton = loadImage('assets/sprites/FD_ProjectileButton.png')
   // Fonts
   Fonts.Hatolie = loadFont('assets/fonts/Hatolie.ttf');
   Fonts.CalligraphyWet = loadFont('assets/fonts/CalligraphyWet.ttf');
@@ -246,7 +271,13 @@ function setup() {
   OtherSprites.Cloud1a.resize(500,0);
   OtherSprites.Cloud2a.resize(500,0);
   OtherSprites.Cloud3a.resize(500,0);
-  
+  OtherSprites.Crater.resize(50,0);
+  OtherSprites.LeafBrown.resize(32,0);
+  OtherSprites.LeafRed.resize(32,0);
+  OtherSprites.LeafGreen.resize(32,0);
+  OtherSprites.LeafYellow.resize(32,0);
+  OtherSprites.LeafPile.resize(128,0);
+
   CanvasWidth = Math.min(CanvasWidth, displayWidth);
   CanvasHeight = Math.min(CanvasHeight, displayHeight);
   Canvas = createCanvas(CanvasWidth, CanvasHeight);
@@ -553,8 +584,8 @@ function transitionToFinishAnimationScreen() {
 
   Music.FinishAnimation.sound.play();
 
-  waitingRoomChannel.unsubscribe();
-  myRoomChannel.unsubscribe();
+  
+
 }
 
 function draw() {
@@ -628,7 +659,7 @@ function drawIntroScreen() {
   updateCloudsX();
   drawClouds();
 
-  drawLogo(70,30);
+  drawLogo(CanvasWidth/2,OtherSprites.Logo.height/2+30);
 }
 
 function drawCharacterSelectScreen() {
@@ -729,13 +760,20 @@ function mouseClicked() {
   }
 }
 
+
+
+
+
 function keyPressed() {
-  if (GameScreen == GameScreens.Play) {
-    if (key == ' ') { // Space Bar
-      weaponActivated();
-    }
+if (GameScreen == GameScreens.Play) {
+  if (key == ' ') { // Space Bar
+    weaponActivated();
   }
 }
+
+
+}
+
 
 function weaponActivated() {
 
@@ -777,6 +815,24 @@ function weaponActivated() {
       Player.weaponCooldownUntil = Date.now() + 500; // "fire" refresh rate
     }
 
+  } else if (weaponString == Symbol.keyFor(WeaponTypes.SlimeBall)) {
+
+    console.log("throw SlimeBall");
+    let cooldown = Player.weaponCooldownUntil - Date.now();
+    console.log("cooldown = ", cooldown);
+    if (cooldown <= 0) {
+      Player.weapons.push(
+        {
+          type: weaponString,
+          positionXPercent: Player.positionXPercent,
+          positionYPercent: Player.positionYPercent,
+          yVelocity: 5,
+          expiresAt: Date.now() + 5000 // "range" is 5 seconds
+        }
+        );
+      Player.weaponCooldownUntil = Date.now() + 500; // "fire" refresh rate
+    }
+
   } else if (weaponString == Symbol.keyFor(WeaponTypes.Fangs)) {
 
     console.log("use fangs");
@@ -799,7 +855,6 @@ function weaponActivated() {
 }
 
 function updatePlayer() {
-
   let xMove = massToXAccel(Characters[Player.character].stats.mass);
   let xBoostFactor = 10;
   let xBoost = xBoostFactor * ((Player.xBoostUntil - Date.now()) / 1000);
@@ -812,8 +867,7 @@ function updatePlayer() {
     Player.positionXPercent -= xMove;
     if (Player.positionXPercent < 0) {
       Player.positionXPercent = 0;
-      //drawEggSplat();
-    }
+    } 
   }
 
   if (keyIsDown(RIGHT_ARROW)) {
@@ -821,9 +875,9 @@ function updatePlayer() {
     Player.positionXPercent += xMove;
     if (Player.positionXPercent > 100) {
       Player.positionXPercent = 100;
-      //drawEggSplat();
     }
   }
+
 
   if (GameScreen == GameScreens.Play) {
     let yAccel = massToYAccel(Characters[Player.character].stats.mass);
@@ -940,8 +994,28 @@ function drawPlayScreen() {
   collideOwnWeapons();
   drawOwnWeapons();
   drawOtherWeapons();
+
+  drawProjectileButton();
 }
 
+function drawLeavesExplosion(){
+  let timeRemaining = leafPileExplosionEnd - Date.now();
+  push();
+        imageMode(CENTER);
+        if (timeRemaining > 800/2) {
+          image(OtherSprites.EndFrame1,CanvasWidth/2,CanvasHeight/2);
+        } else if (timeRemaining > 600/2) {
+          image(OtherSprites.EndFrame2,CanvasWidth/2,CanvasHeight/2);
+        } else if (timeRemaining > 400/2) {
+          image(OtherSprites.EndFrame3,CanvasWidth/2,CanvasHeight/2);
+        } else if (timeRemaining > 200/2) {
+          image(OtherSprites.EndFrame4,CanvasWidth/2,CanvasHeight/2);
+        } else if (timeRemaining > 0/2) {
+          image(OtherSprites.EndFrame5,CanvasWidth/2,CanvasHeight/2);
+        } 
+      pop();
+      return timeRemaining > 0;
+}
 
 const FinishAnimationStates = {
 	FASStart:                Symbol.for("FASStart"),
@@ -965,7 +1039,7 @@ function drawFinishAnimationScreen() {
   background(SkyColor);
   
   drawClouds();
-
+    
   switch (finishAnimationState) {
     case FinishAnimationStates.FASStart:
     {
@@ -1036,6 +1110,7 @@ function drawFinishAnimationScreen() {
       drawLeaves();
       if (yCoord >= groundYCoord-10) {
         finishAnimationState = FinishAnimationStates.FASExplodeLeaves;
+        leafPileExplosionEnd = Date.now() + 500;
       }
       break;
     }
@@ -1043,13 +1118,16 @@ function drawFinishAnimationScreen() {
     {
       drawGround();
       drawOtherPlayer(firstPlacePlayer,0,false);
-      drawLeaves();
-      
-      if (playersPlaced.length > 0) {
-        finishAnimationState = FinishAnimationStates.FASLandOtherPlayers;
-      } else {
-        finishAnimationState = FinishAnimationStates.FASDone;
+      if(false == drawLeavesExplosion()){
+
+        if (playersPlaced.length > 0) {
+          finishAnimationState = FinishAnimationStates.FASLandOtherPlayers;
+        } else {
+          finishAnimationState = FinishAnimationStates.FASDone;
+        }
+
       }
+      
       break;
     }
     case FinishAnimationStates.FASLandOtherPlayers:
@@ -1057,6 +1135,7 @@ function drawFinishAnimationScreen() {
       drawGround();
       drawCraters();
       drawOtherPlayer(firstPlacePlayer,0,false);
+      drawLeavesExplosion();
 
       playersPlaced[0].positionYPercent += 5;
       let yCoord = drawOtherPlayer(playersPlaced[0],0,false);
@@ -1065,6 +1144,11 @@ function drawFinishAnimationScreen() {
         playersPlaced.shift();
         if (playersPlaced.length == 0) {
           finishAnimationState = FinishAnimationStates.FASDone;
+
+          setTimeout(() => {
+            waitingRoomChannel.unsubscribe();
+            myRoomChannel.unsubscribe();
+          },2000);
         }
       }
       break;
@@ -1073,6 +1157,7 @@ function drawFinishAnimationScreen() {
     {
       drawGround();
       drawCraters();
+    //  drawLeavesExplosion();
       drawOtherPlayer(firstPlacePlayer,0,false);
       push();
         textAlign(CENTER, TOP);
@@ -1092,9 +1177,8 @@ function drawFinishAnimationScreen() {
 function drawGround() {
 
   push();
-    rectMode(CENTER);
-    fill("green");
-    rect(CanvasWidth/2,groundYCoord, CanvasWidth+10,groundHeight);
+    imageMode(CENTER);
+    image(OtherSprites.Ground,CanvasWidth/2,groundYCoord);
   pop();
 }
 
@@ -1102,20 +1186,28 @@ function drawCraters() {
   for (let i = 0; i < Craters.length; i++) {
     let x = percentToX(Craters[i]);
     push();
-      rectMode(CENTER);
-      fill("brown");
-      rect(x,groundYCoord-10, 64,32);
+      imageMode(CENTER);
+      image(OtherSprites.Crater,x,groundYCoord-10)  ;
     pop();
   }
 }
 
-function drawLeaves() {
+function drawLeavesB() {
 
   push();
     ellipseMode(CENTER);
     fill("orange");
     ellipse(CanvasWidth/2,groundYCoord, CanvasWidth/5,groundHeight/2);
   pop();
+}
+
+function drawLeaves(){
+
+  push();
+  imageMode(CENTER);
+    image(OtherSprites.LeafPile,CanvasWidth/2,groundYCoord - 30)
+  pop();
+
 }
 
 function drawPlayer(percentOffsetY) {
@@ -1194,18 +1286,25 @@ function drawTitle(title) {
   pop();
 }
 
-function drawLogo(x,y) {
+//function drawLogo(x,y) {
+ // push();
+  //  textAlign(LEFT, TOP);
+  //  fill(0);
+  //  strokeWeight(0);
+  //  textSize(83);
+  //  textFont(Fonts.Hatolie);
+  //  text("Fall", x,y+30);
+  //  textSize(123);
+  //  textFont(Fonts.CalligraphyWet);
+  //  text("DAMAGE", x+110,y);
+ //pop();
+//}
+
+function drawLogo(x,y){
   push();
-    textAlign(LEFT, TOP);
-    fill(0);
-    strokeWeight(0);
-    textSize(83);
-    textFont(Fonts.Hatolie);
-    text("Fall", x,y+30);
-    textSize(123);
-    textFont(Fonts.CalligraphyWet);
-    text("DAMAGE", x+110,y);
-  pop();
+  imageMode(CENTER);
+  image(OtherSprites.Logo,x,y);
+pop();
 }
 
 function percentToX(percent) {
@@ -1458,6 +1557,11 @@ function updateOwnWeapons() {
     }
   }
 }
+  function touchEnded(){
+    weaponActivated();
+  }
+
+
 
 function updateOtherWeapons() {
 
@@ -1538,7 +1642,23 @@ function getWeaponSprite(weapon) {
   {
     return OtherSprites.Acorn;
   }
+
+  if (weapon.type == Symbol.keyFor(WeaponTypes.SlimeBall))
+  {
+    return OtherSprites.SlimeBall;
+  }
 }
+function drawProjectileButton(){
+push();
+  imageMode(CENTER);
+  image(OtherSprites.ProjectileButton,40,480);
+pop();
+
+}
+
+
+
+
 
 // Hatolie 83 pt - Fall
 // CalligraphyWet 123 pt - DAMAGE
