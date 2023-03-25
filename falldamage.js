@@ -302,8 +302,8 @@ function setup() {
 }
 
 function touchStarted() {
-  if  (!fullScreen()) {
-    fullScreen(true);
+  if  (!fullscreen()) {
+    fullscreen(true);
   }
 }
 
