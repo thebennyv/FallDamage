@@ -747,7 +747,11 @@ function drawEggSplat(){
 
 function mouseClicked() {
 
-  if (GameScreen == GameScreens.CharacterSelect) {
+  if (GameScreen == GameScreens.Play) {
+    if (pointIsInPlayControl(mouseX,mouseY, PlayControls.Fire)) {
+      weaponActivated();
+    }
+  } else if (GameScreen == GameScreens.CharacterSelect) {
 
     let xIndex = Math.floor(mouseX / 70);
     let yIndex = Math.floor(mouseY / 70);
@@ -764,14 +768,6 @@ function mouseClicked() {
 function keyPressed() {
   if (GameScreen == GameScreens.Play) {
     if (key == ' ') { // Space Bar
-      weaponActivated();
-    }
-  }
-}
-
-function mouseClicked() {
-  if (GameScreen == GameScreens.Play) {
-    if (pointIsInPlayControl(mouseX,mouseY, PlayControls.Fire)) {
       weaponActivated();
     }
   }
